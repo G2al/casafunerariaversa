@@ -1,0 +1,1 @@
+@include('pdf.administrative', ['title' => 'Scheda per richiesta di trasporto — Cremazione', 'description' => 'Dati per la predisposizione della richiesta di trasporto con destinazione al crematorio. Riferimento fotografico 04: domanda annotata «Cremazione». Testo della domanda e allegati da convalidare.'])

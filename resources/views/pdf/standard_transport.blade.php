@@ -1,0 +1,1 @@
+@include('pdf.administrative', ['title' => 'Scheda operativa — Trasporto funebre normale', 'description' => 'Riepilogo dei dati del trasporto. L’associazione al singolo modulo cartaceo originale deve essere verificata dall’agenzia.'])
