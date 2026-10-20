@@ -23,7 +23,9 @@ class ManifestTemplateResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Cornici manifesti';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Amministrazione';
+    protected static string|\UnitEnum|null $navigationGroup = 'Risorse del servizio';
+
+    protected static ?int $navigationSort = 1;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 

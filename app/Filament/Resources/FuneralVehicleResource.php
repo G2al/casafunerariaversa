@@ -20,7 +20,9 @@ class FuneralVehicleResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Mezzi';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Amministrazione';
+    protected static string|\UnitEnum|null $navigationGroup = 'Risorse del servizio';
+
+    protected static ?int $navigationSort = 3;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-truck';
 

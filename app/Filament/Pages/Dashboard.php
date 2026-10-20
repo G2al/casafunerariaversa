@@ -13,6 +13,10 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     protected static ?string $title = 'Panoramica pratiche';
 
+    protected static string|\UnitEnum|null $navigationGroup = 'Operatività';
+
+    protected static ?int $navigationSort = 1;
+
     public function filtersForm(Schema $schema): Schema
     {
         return $schema->components([

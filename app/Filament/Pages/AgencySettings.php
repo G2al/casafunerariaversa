@@ -21,6 +21,8 @@ class AgencySettings extends Page
 
     protected static string|\UnitEnum|null $navigationGroup = 'Amministrazione';
 
+    protected static ?int $navigationSort = 2;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cog-6-tooth';
 
     protected string $view = 'filament.pages.agency-settings';

@@ -20,7 +20,9 @@ class FuneralStaffMemberResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Personale trasporto';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Amministrazione';
+    protected static string|\UnitEnum|null $navigationGroup = 'Risorse del servizio';
+
+    protected static ?int $navigationSort = 2;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-identification';
 

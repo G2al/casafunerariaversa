@@ -25,6 +25,8 @@ class UserResource extends Resource
 
     protected static string|\UnitEnum|null $navigationGroup = 'Amministrazione';
 
+    protected static ?int $navigationSort = 1;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-users';
 
     public static function form(Schema $schema): Schema

@@ -14,7 +14,9 @@ class OperatorReport extends Page
 {
     protected static ?string $title = 'Report per operatore';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Amministrazione';
+    protected static string|\UnitEnum|null $navigationGroup = 'Analisi e report';
+
+    protected static ?int $navigationSort = 1;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
