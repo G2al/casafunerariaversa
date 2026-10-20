@@ -10,3 +10,5 @@
 - PDF reali esaminati: i due amministrativi e manifesti con tre cornici, foto presente/assente e nome/testo lunghi. Campioni A4 di una pagina, font incorporati; manifesto orizzontale con margini di 5 mm. Artefatti fittizi in storage/framework/testing, esclusi dal repository.
 - Limiti: nessuna prova di carico concorrente MySQL o stampa su dispositivo fisico. Associazione e testi dei due modelli amministrativi da convalidare: vedi DOCUMENT_TEMPLATES_REVIEW.md. Entrambi restano BOZZA DA VERIFICARE.
 - Avvio e istruzioni: README.md. Cornici definitive: /admin/manifest-templates; catalogo iniziale vuoto.
+- Bootstrap utenti: DatabaseSeeder richiama InitialUsersSeeder; admin interattivo/configurato e operatore facoltativo da INITIAL_OPERATOR_*. Nessuna password predefinita, nessun utente demo; account esistenti preservati. Configurazione in config/initial_users.php e .env.example, procedura server in README.md.
+- Verifiche dopo bootstrap utenti: 25 test, 227 asserzioni; Pint passed. Sei test specifici coprono ruoli, password cifrate tramite hash, ripetibilità, account esistenti, interazione CLI, credenziali mancanti/conflitti e assenza di creazioni parziali.

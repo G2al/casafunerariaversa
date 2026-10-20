@@ -12,6 +12,22 @@ php artisan serve
 
 Aprire http://127.0.0.1:8000/admin con l’account esistente. Gli asset sono già compilati. Dopo modifiche agli asset: `npm run build`. Su una nuova copia con dipendenze mancanti: `composer install`, `npm ci`, `php artisan migrate`, `npm run build`. Non usare lo script generico `composer setup` sul database esistente.
 
+## Utenti iniziali sul server
+
+Il seeder predefinito non crea più utenti dimostrativi. Dopo `php artisan migrate --force`, eseguire:
+
+```bash
+php artisan config:clear
+php artisan db:seed --force
+php artisan optimize
+```
+
+Se non esiste un amministratore attivo, il comando richiede l’email e una password nascosta di almeno 12 caratteri e crea l’admin. Se un admin attivo è già presente, lo conserva. Gli altri utenti si possono creare da **Amministrazione → Utenti**.
+
+Per creare anche un operatore iniziale o eseguire senza interazione, configurare nel `.env` `INITIAL_ADMIN_NAME`, `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` e, facoltativamente, `INITIAL_OPERATOR_NAME`, `INITIAL_OPERATOR_EMAIL`, `INITIAL_OPERATOR_PASSWORD` (vedi `.env.example`). Quindi usare `php artisan config:clear`, `php artisan db:seed --force --no-interaction` e `php artisan optimize`. Non sono previste password predefinite. Dopo il bootstrap si possono rimuovere le password `INITIAL_*` dal `.env` e rigenerare la cache con `php artisan optimize`.
+
+Il seeder è ripetibile: non aggiorna nomi, password, ruoli o stato degli account esistenti. Se l’email appartiene a un account inattivo o con ruolo diverso, si interrompe senza promuoverlo. Le credenziali vengono validate prima di creare gli account; non servono factory o dipendenze di sviluppo sul server.
+
 ## Utilizzo
 
 1. L’amministratore gestisce **Utenti**, **Impostazioni agenzia**, **Personale trasporto** e **Mezzi**. Impostare i dati aziendali verificati: nessuna denominazione o partita IVA è stata copiata dalle fotografie. La camera ardente ha un indirizzo separato, inizialmente Via Savoia 31, Aversa, da verificare.
