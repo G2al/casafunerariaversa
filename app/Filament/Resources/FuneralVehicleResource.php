@@ -3,6 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Models\FuneralVehicle;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -28,12 +29,16 @@ class FuneralVehicleResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema->components([TextInput::make('name')->label('Descrizione')->required()->maxLength(255), TextInput::make('plate')->label('Targa')->required()->maxLength(30), TextInput::make('credentials')->label('Estremi idoneità sanitaria')->maxLength(255), Toggle::make('is_active')->label('Attivo')->default(true)]);
+        return $schema->components([TextInput::make('name')->label('Descrizione')->required()->maxLength(255), TextInput::make('plate')->label('Targa')->required()->maxLength(30), TextInput::make('credentials')->label('Estremi idoneità sanitaria')->maxLength(255), Toggle::make('is_active')->label('Attivo')->default(true)->helperText('Disattiva i mezzi già associati a pratiche per conservarne lo storico.')]);
     }
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->label('Descrizione')->searchable(), TextColumn::make('plate')->label('Targa')->searchable(), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([EditAction::make()]);
+        return $table->modifyQueryUsing(fn ($query) => $query->withExists('funeralCases'))->columns([TextColumn::make('name')->label('Descrizione')->searchable(), TextColumn::make('plate')->label('Targa')->searchable(), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([
+            EditAction::make(),
+            DeleteAction::make()->disabled(fn (FuneralVehicle $record) => $record->isUsed())
+                ->tooltip(fn (FuneralVehicle $record) => $record->isUsed() ? 'Già associato a una pratica: disattivalo da Modifica.' : 'Elimina definitivamente questo mezzo.'),
+        ]);
     }
 
     public static function getPages(): array

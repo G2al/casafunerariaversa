@@ -147,7 +147,7 @@ class FuneralCaseResource extends Resource
 
                     return 'Età al decesso: '.($record->age ?? 'non calcolabile').' · Documento: '.(implode(', ', $service->missing($record, 'document')) ?: 'dati completi').' · Manifesto: '.(implode(', ', $service->missing($record, 'manifest')) ?: 'dati completi');
                 })->columnSpanFull(),
-            ])->columns(['default' => 1, 'md' => 2]),
+            ])->columns(['default' => 1, 'md' => 2])->columnSpanFull(),
             Tabs::make('Scheda')->tabs($tabs)->columnSpanFull()->persistTabInQueryString(),
         ]);
     }

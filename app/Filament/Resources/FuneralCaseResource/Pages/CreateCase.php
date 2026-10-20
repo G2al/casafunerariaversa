@@ -9,6 +9,8 @@ class CreateCase extends CreateRecord
 {
     protected static string $resource = FuneralCaseResource::class;
 
+    protected static ?string $title = 'Nuova pratica funebre';
+
     protected function getRedirectUrl(): string
     {
         return static::getResource()::getUrl('edit', ['record' => $this->record]);

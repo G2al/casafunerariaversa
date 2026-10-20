@@ -51,14 +51,14 @@ class AgencySettings extends Page
                 Textarea::make('legal_details')->label('Dati legali / autorizzazioni da verificare')->maxLength(4000),
             ])->columns(2),
             Section::make('Camera ardente e manifesto')->schema([
-                TextInput::make('viewing_venue')->label('Nome sede casa funeraria')->maxLength(255), TextInput::make('viewing_address')->label('Indirizzo casa funeraria')->maxLength(255)->helperText('Via Savoia 31 è un riferimento iniziale da verificare.'),
+                TextInput::make('viewing_venue')->label('Nome sede casa funeraria')->maxLength(255)->helperText('Precompilato nelle nuove pratiche; può essere modificato per il singolo servizio.'), TextInput::make('viewing_address')->label('Indirizzo casa funeraria')->maxLength(255)->helperText('Indirizzo della camera ardente, precompilato nelle nuove pratiche. Verifica il riferimento iniziale Via Savoia 31.'),
                 Textarea::make('closing_text')->label('Messaggio finale del manifesto')->maxLength(500),
                 TextInput::make('intro_male')->label('Introduzione maschile')->maxLength(250)->placeholder('È venuto a mancare all’affetto dei suoi cari il Signor'),
                 TextInput::make('intro_female')->label('Introduzione femminile')->maxLength(250)->placeholder('È venuta a mancare all’affetto dei suoi cari la Signora'),
-                TextInput::make('safe_left')->label('Margine sinistro (%)')->numeric()->minValue(23)->maxValue(60)->required(),
-                TextInput::make('safe_top')->label('Margine superiore (%)')->numeric()->minValue(2)->maxValue(30)->required(),
-                TextInput::make('safe_width')->label('Larghezza zona testo (%)')->numeric()->minValue(30)->maxValue(75)->required(),
-                TextInput::make('safe_height')->label('Altezza zona testo (%)')->numeric()->minValue(30)->maxValue(94)->required(),
+                TextInput::make('safe_left')->label('Margine sinistro (%)')->numeric()->minValue(23)->maxValue(60)->required()->helperText('Inizio del testo da sinistra: lascia libera la figura religiosa della cornice.'),
+                TextInput::make('safe_top')->label('Margine superiore (%)')->numeric()->minValue(2)->maxValue(30)->required()->helperText('Inizio del testo dall’alto. Le percentuali si riferiscono all’area stampabile, già interna ai margini di stampa.'),
+                TextInput::make('safe_width')->label('Larghezza zona testo (%)')->numeric()->minValue(30)->maxValue(75)->required()->helperText('Spazio orizzontale disponibile per i testi del manifesto.'),
+                TextInput::make('safe_height')->label('Altezza zona testo (%)')->numeric()->minValue(30)->maxValue(94)->required()->helperText('Spazio verticale disponibile. Mantieni i valori iniziali se le cornici hanno la geometria dei campioni.'),
             ])->columns(2),
         ]);
     }
