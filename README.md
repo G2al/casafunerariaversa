@@ -30,6 +30,14 @@ Il seeder è ripetibile: non aggiorna nomi, password, ruoli o stato degli accoun
 
 ## Utilizzo
 
+Per creare una pratica cremazione completamente fittizia:
+
+```bash
+php artisan db:seed --class=DemoFuneralCaseSeeder --force
+```
+
+La pratica **Mario Esempio DEMO** viene assegnata al primo amministratore attivo. Restano da scegliere direttore tecnico, operatore incaricato ed elenco personale con qualifiche, e da caricare la foto. Mezzo e cornice sono già selezionati; senza cornici attive viene aggiunto un campione DEMO. I soli campi aziendali vuoti vengono completati con valori dimostrativi; quelli esistenti sono conservati. Il seeder è esplicito, escluso dal `DatabaseSeeder` ordinario, non crea utenti/personale e non duplica o sovrascrive la pratica alle esecuzioni successive (conservare il marcatore nelle note interne). Non genera PDF automaticamente.
+
 1. L’amministratore gestisce **Utenti**, **Impostazioni agenzia**, **Personale trasporto** e **Mezzi**. Impostare i dati aziendali verificati: nessuna denominazione o partita IVA è stata copiata dalle fotografie. La camera ardente ha un indirizzo separato, inizialmente Via Savoia 31, Aversa, da verificare.
 2. Caricare le cornici definitive da **Risorse del servizio → Cornici manifesti**, percorso `/admin/manifest-templates`. Sono disponibili caricamento singolo e multiplo, ordine, anteprima, ricerca e disattivazione. Il catalogo operativo parte vuoto; i tre campioni sono riservati ai test. Le cornici già utilizzate non si eliminano; la sostituzione non altera i PDF archiviati.
 3. In **Pratiche funebri** scegliere esattamente una delle due procedure: **Cremazione** o **Trasporto funebre normale**. Salvare anche dati incompleti; completare successivamente le sezioni. Il codice annuale è automatico. L’età è quella al decesso.
