@@ -6,6 +6,7 @@ use App\Enums\CaseStatus;
 use App\Enums\CaseType;
 use App\Filament\Resources\FuneralCaseResource\RelationManagers\DocumentsRelationManager;
 use App\Filament\Support\CaseActions;
+use App\Filament\Support\CremationRequestForm;
 use App\Filament\Support\PrivateUpload;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
@@ -110,12 +111,14 @@ class FuneralCaseResource extends Resource
                 ])->columns(2)->defaultItems(0)->maxItems(30)->columnSpanFull();
             }
             if ($section === 'Trasporto') {
-                $components[] = Select::make('staff_member_id')->label('Personale incaricato')->relationship('staffMember', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload();
+                $components[] = Select::make('staff_member_id')->label('Operatore incaricato del trasporto')->relationship('staffMember', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload();
                 $components[] = Select::make('vehicle_id')->label('Mezzo')->relationship('vehicle', 'plate', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload();
+                $components[] = Select::make('transportStaff')->label('Personale da riportare nel documento')->relationship('transportStaff', 'name', fn (Builder $query) => $query->where('is_active', true))->multiple()->searchable()->preload()->maxItems(16)->columnSpanFull()->helperText('Seleziona i nominativi da stampare con qualifica ed estremi di abilitazione, includendo l’operatore incaricato del trasporto.');
             }
             $tab = Tab::make($section)->schema([Section::make($section)->schema($components)->columns(['default' => 1, 'md' => 2])]);
             if ($section === 'Cremazione') {
                 $tab->visible(fn (Get $get) => $get('type') === 'cremation' || $get('type') === CaseType::Cremation);
+                $tab->schema([Section::make($section)->schema($components)->columns(['default' => 1, 'md' => 2]), ...CremationRequestForm::sections()]);
             }
             $tabs[] = $tab;
         }

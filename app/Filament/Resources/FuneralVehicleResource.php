@@ -36,7 +36,7 @@ class FuneralVehicleResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->modifyQueryUsing(fn ($query) => $query->withExists('funeralCases'))->columns([TextColumn::make('name')->label('Descrizione')->searchable(), TextColumn::make('plate')->label('Targa')->searchable(), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([
+        return $table->modifyQueryUsing(fn ($query) => $query->withExists(['funeralCases', 'priorTransfers']))->columns([TextColumn::make('name')->label('Descrizione')->searchable(), TextColumn::make('plate')->label('Targa')->searchable(), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([
             EditAction::make(),
             DeleteAction::make()->disabled(fn (FuneralVehicle $record) => $record->isUsed())
                 ->tooltip(fn (FuneralVehicle $record) => $record->isUsed() ? 'Già associato a una pratica: disattivalo da Modifica.' : 'Elimina definitivamente questo mezzo.'),

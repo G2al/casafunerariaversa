@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CaseType;
 use App\Models\AuditEvent;
 use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
@@ -10,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class PdfGenerator
 {
@@ -22,10 +24,19 @@ class PdfGenerator
             $data['layout'] = app(ManifestLayout::class)->fit($data);
         }
         $view = $kind === 'manifest' ? 'pdf.manifest' : 'pdf.'.$case->type->value;
-        $pdf = Pdf::loadView($view, ['data' => $data])->setPaper('a4', $kind === 'manifest' ? 'landscape' : 'portrait')
-            ->setOptions(['defaultFont' => 'DejaVu Serif', 'isRemoteEnabled' => false, 'isPhpEnabled' => false, 'isJavascriptEnabled' => false]);
-
-        return ['bytes' => $pdf->output(), 'snapshot' => $data];
+        $cremationRequest = $kind === 'document' && $case->type === CaseType::Cremation;
+        foreach ($cremationRequest ? [9.2, 8.8, 8.4, 8.0, 7.6, 7.2] : [null] as $fontSize) {
+            if ($cremationRequest) {
+                $data['request']['font_size'] = $fontSize;
+            }
+            $pdf = Pdf::loadView($view, ['data' => $data])->setPaper('a4', $kind === 'manifest' ? 'landscape' : 'portrait')
+                ->setOptions(['defaultFont' => $cremationRequest ? 'DejaVu Sans' : 'DejaVu Serif', 'isRemoteEnabled' => false, 'isPhpEnabled' => false, 'isJavascriptEnabled' => false]);
+            $bytes = $pdf->output();
+            if (! $cremationRequest || $pdf->getDomPDF()->getCanvas()->get_page_count() === 4) {
+                return ['bytes' => $bytes, 'snapshot' => $data];
+            }
+        }
+        throw ValidationException::withMessages(['document' => 'I contenuti superano lo spazio delle quattro pagine. Riduci le note o verifica la lunghezza dei dati aziendali e delle abilitazioni del personale. Nessun testo è stato tagliato.']);
     }
 
     public function generate(FuneralCase $case, string $kind): FuneralDocument

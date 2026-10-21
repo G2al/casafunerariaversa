@@ -9,6 +9,8 @@ use App\Services\PrivateImage;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +24,7 @@ class FuneralCase extends Model
     protected function casts(): array
     {
         $casts = ['type' => CaseType::class, 'status' => CaseStatus::class, 'family_members' => 'array', 'manifest_options' => 'array', 'registered_at' => 'datetime', 'death_cause' => 'encrypted'];
+        $casts += ['prior_transfer_date' => 'date', 'transport_distance_km' => 'decimal:2', 'cremation_details' => 'array'];
         foreach (config('funeral.sections') as $fields) {
             foreach (array_keys($fields) as $field) {
                 if (str_ends_with($field, '_date') || str_ends_with($field, '_at')) {
@@ -128,5 +131,20 @@ class FuneralCase extends Model
     public function vehicle()
     {
         return $this->belongsTo(FuneralVehicle::class, 'vehicle_id');
+    }
+
+    public function technicalDirector(): BelongsTo
+    {
+        return $this->belongsTo(FuneralStaffMember::class, 'technical_director_id');
+    }
+
+    public function transportStaff(): BelongsToMany
+    {
+        return $this->belongsToMany(FuneralStaffMember::class, 'funeral_case_staff')->using(FuneralCaseStaff::class)->withTimestamps()->orderBy('funeral_staff_members.name');
+    }
+
+    public function priorTransferVehicle(): BelongsTo
+    {
+        return $this->belongsTo(FuneralVehicle::class, 'prior_transfer_vehicle_id');
     }
 }

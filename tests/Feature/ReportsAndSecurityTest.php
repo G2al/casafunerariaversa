@@ -67,6 +67,10 @@ class ReportsAndSecurityTest extends TestCase
     {
         // Tutto avviene nel database SQLite in memoria creato da RefreshDatabase.
         $migration = require database_path('migrations/2026_10_19_000100_create_funeral_management.php');
+        $requestMigration = require database_path('migrations/2026_10_21_000100_add_cremation_request_fields.php');
+        $packetMigration = require database_path('migrations/2026_10_21_000200_add_cremation_packet_details.php');
+        $packetMigration->down();
+        $requestMigration->down();
         $migration->down();
         $id = DB::table('users')->insertGetId(['name' => 'Amministratore fittizio', 'email' => 'admin@example.test', 'password' => 'hash-di-test', 'created_at' => now(), 'updated_at' => now()]);
         $migration->up();
@@ -76,5 +80,7 @@ class ReportsAndSecurityTest extends TestCase
         DB::table('users')->insert(['name' => 'Secondo account fittizio', 'email' => 'second@example.test', 'password' => 'hash-di-test']);
         $migration->up();
         $this->assertSame(0, DB::table('users')->whereNotNull('role')->count());
+        $requestMigration->up();
+        $packetMigration->up();
     }
 }

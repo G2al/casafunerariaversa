@@ -17,7 +17,8 @@ table { width:100%; border-collapse:collapse; table-layout:fixed; } td { padding
 @foreach($data['rows'] as $section => $rows)
 <h2>{{ $section }}</h2><table>@foreach(array_chunk($rows, 2, true) as $pair)<tr>@foreach($pair as $label => $value)<td class="label">{{ $label }}</td><td class="value">{{ $value }}</td>@endforeach @if(count($pair) === 1)<td class="label"></td><td class="value"></td>@endif</tr>@endforeach</table>
 @endforeach
-@if($data['staff'])<h2>Personale incaricato</h2><p>{{ implode(' · ', array_filter($data['staff'])) }}</p>@endif
+@if(!empty($data['staff_list']))<h2>Personale incaricato</h2>@foreach($data['staff_list'] as $member)<p>{{ implode(' · ', array_filter($member)) }}</p>@endforeach
+@elseif($data['staff'])<h2>Personale incaricato</h2><p>{{ implode(' · ', array_filter($data['staff'])) }}</p>@endif
 @if($data['vehicle'])<h2>Mezzo incaricato</h2><p>{{ implode(' · ', array_filter($data['vehicle'])) }}</p>@endif
 @if(!empty($data['company']['legal_details']))<h2>Dati aziendali e autorizzazioni</h2><p>{{ $data['company']['legal_details'] }}</p>@endif
 <p style="margin-top:28pt">Luogo e data ____________________ &nbsp; Firma ____________________</p>

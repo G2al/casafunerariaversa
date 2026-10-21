@@ -6,6 +6,7 @@ use App\Filament\Support\PrivateUpload;
 use App\Models\CompanySettings;
 use App\Services\PrivateImage;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
@@ -50,6 +51,26 @@ class AgencySettings extends Page
                 PrivateUpload::make('logo_path', 'Logo', 'company')->preventFilePathTampering(allowFilePathUsing: fn (string $file) => $file === (CompanySettings::current()['logo_path'] ?? null)),
                 Textarea::make('legal_details')->label('Dati legali / autorizzazioni da verificare')->maxLength(4000),
             ])->columns(2),
+            Section::make('Impresa incaricata del trasporto')->description('Dati aziendali per la domanda di autorizzazione. Sono distinti dall’autorizzazione del singolo trasporto inserita nella pratica.')->schema([
+                TextInput::make('company_city')->label('Comune della sede dell’impresa')->maxLength(255),
+                TextInput::make('company_authorization_protocol')->label('Protocollo autorizzazione / SCIA')->maxLength(120),
+                DatePicker::make('company_authorization_date')->label('Data autorizzazione / SCIA')->displayFormat('d/m/Y')->maxDate(today()),
+                TextInput::make('company_authorization_issuer')->label('Comune e ufficio che hanno rilasciato l’autorizzazione')->maxLength(255)->placeholder('Comune di … — Ufficio SUAP'),
+            ])->columns(['default' => 1, 'md' => 2]),
+            Section::make('Dichiarazione dell’impresa e delega')->schema([
+                TextInput::make('chamber_city')->label('Camera di commercio (Comune)')->maxLength(255),
+                TextInput::make('rea_number')->label('Numero REA')->maxLength(100),
+                TextInput::make('practice_license_protocol')->label('Protocollo licenza art. 115 TULPS')->maxLength(120),
+                DatePicker::make('practice_license_date')->label('Data licenza art. 115 TULPS')->displayFormat('d/m/Y')->maxDate(today()),
+                TextInput::make('practice_license_issuer')->label('Comune / ufficio di rilascio licenza art. 115')->maxLength(255),
+                TextInput::make('retail_authorization_protocol')->label('Protocollo comunicazione / licenza vendita casse (se presente)')->maxLength(120),
+                DatePicker::make('retail_authorization_date')->label('Data comunicazione / licenza vendita casse')->displayFormat('d/m/Y')->maxDate(today()),
+                TextInput::make('retail_authorization_issuer')->label('Comune / ufficio comunicazione vendita casse')->maxLength(255),
+                TextInput::make('inps_position')->label('Posizione INPS')->maxLength(100),
+                TextInput::make('inail_position')->label('Posizione INAIL')->maxLength(100),
+                TextInput::make('publication_company_name')->label('Società che pubblica l’annuncio (se diversa)')->maxLength(255)->helperText('Vuoto: viene usata la ragione sociale dell’impresa.'),
+                TextInput::make('publication_company_city')->label('Comune della società che pubblica l’annuncio')->maxLength(255)->helperText('Se la società è diversa, indica anche il suo Comune.'),
+            ])->description('Inserire gli estremi effettivi dell’impresa: nessun dato delle foto viene assunto come ufficiale.')->columns(['default' => 1, 'md' => 2]),
             Section::make('Camera ardente e manifesto')->schema([
                 TextInput::make('viewing_venue')->label('Nome sede casa funeraria')->maxLength(255)->helperText('Precompilato nelle nuove pratiche; può essere modificato per il singolo servizio.'), TextInput::make('viewing_address')->label('Indirizzo casa funeraria')->maxLength(255)->helperText('Indirizzo della camera ardente, precompilato nelle nuove pratiche. Verifica il riferimento iniziale Via Savoia 31.'),
                 Textarea::make('closing_text')->label('Messaggio finale del manifesto')->maxLength(500),

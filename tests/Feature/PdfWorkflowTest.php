@@ -10,10 +10,12 @@ use App\Services\PdfGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Tests\Support\CreatesCremationRequest;
 use Tests\TestCase;
 
 class PdfWorkflowTest extends TestCase
 {
+    use CreatesCremationRequest;
     use RefreshDatabase;
 
     private function completeCase(string $type = 'cremation'): FuneralCase
@@ -27,6 +29,9 @@ class PdfWorkflowTest extends TestCase
         $this->actingAs(User::factory()->create());
         foreach (['cremation', 'standard_transport'] as $type) {
             $case = $this->completeCase($type);
+            if ($type === 'cremation') {
+                $case = $this->prepareRequest($case);
+            }
             $this->assertNotSame('Dato sanitario riservato', $case->getRawOriginal('death_cause'));
             $one = app(PdfGenerator::class)->generate($case, 'document');
             $bytes = Storage::disk('local')->get($one->file_path);

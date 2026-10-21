@@ -43,7 +43,11 @@ Le tabelle **Pratiche funebri**, **Mezzi**, **Personale trasporto**, **Cornici m
 
 ## Documenti da verificare
 
-I due template amministrativi riportano **BOZZA DA VERIFICARE**. Il riferimento 04 è annotato «Cremazione»; per il trasporto normale non è identificato con certezza un singolo originale. Il secondo generatore produce quindi una scheda operativa, senza presentarla come modulo ufficiale. Non vengono generati dichiarazione, verbale e delega aggiuntivi.
+Il PDF **Cremazione** contiene **quattro pagine** nell'ordine degli originali: domanda di autorizzazione al trasporto, verbale di chiusura del feretro, dichiarazione sostitutiva dell'impresa, delega al servizio e trattamento dati. Include testi fissi, richiami normativi, dati aziendali e autorizzazioni, direttore tecnico, personale scelto con selezione multipla, operatore incaricato, mezzo, allegati e spazi per le firme. Usa il logo dell'agenzia senza la dicitura BOZZA. Il trasporto normale mantiene la scheda operativa **BOZZA DA VERIFICARE**. La riproduzione dei testi originali non costituisce una validazione normativa.
+
+Per il nuovo modello eseguire `php artisan migrate --force` e `php artisan optimize:clear`. Configurare **Impostazioni agenzia → Impresa incaricata del trasporto**, completare l'anagrafica del direttore in **Personale trasporto**, quindi i campi aggiunti nel tab **Cremazione** della pratica. In **Trasporto** selezionare l'elenco del personale, includendo l'operatore incaricato. L'eventuale precedente selezione singola viene conservata e copiata nell'elenco dalla migrazione. Generare una nuova versione: i PDF storici non cambiano.
+
+Per le pagine 2–4 configurare anche **Impostazioni agenzia → Dichiarazione dell'impresa e delega** (REA, licenze, posizioni INPS/INAIL). Nel tab **Cremazione** compilare identificazione tramite documento del defunto o testimone, tipo di cassa, verbale, autorizzazione del singolo trasporto, date della dichiarazione/delega e nascita del familiare. Gli altri dati del familiare vengono dal tab **Familiare referente**; l'indirizzo deve comprendere il civico. Il PDF mantiene quattro pagine con adattamento del carattere e segnala i contenuti troppo lunghi senza tagliarli. Bozze incomplete sempre salvabili.
 
 Leggere [docs/DOCUMENT_TEMPLATES_REVIEW.md](docs/DOCUMENT_TEMPLATES_REVIEW.md) prima dell’uso amministrativo ufficiale. I template sono in `resources/views/pdf`; i campi comuni sono definiti in `config/funeral.php`.
 
