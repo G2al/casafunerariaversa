@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\DeletionActions;
 use App\Models\FuneralStaffMember;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -38,7 +40,7 @@ class FuneralStaffMemberResource extends Resource
             EditAction::make(),
             DeleteAction::make()->disabled(fn (FuneralStaffMember $record) => $record->isUsed())
                 ->tooltip(fn (FuneralStaffMember $record) => $record->isUsed() ? 'Già associato a una pratica: disattivalo da Modifica.' : 'Elimina definitivamente questo membro del personale.'),
-        ]);
+        ])->toolbarActions([BulkActionGroup::make([DeletionActions::bulk()])->label('Azioni sui selezionati')]);
     }
 
     public static function getPages(): array

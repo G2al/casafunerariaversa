@@ -3,7 +3,9 @@
 namespace App\Filament\Resources;
 
 use App\Enums\UserRole;
+use App\Filament\Support\DeletionActions;
 use App\Models\User;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -54,7 +56,14 @@ class UserResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table->columns([TextColumn::make('name')->label('Nome')->searchable(), TextColumn::make('email')->label('Email')->searchable(), TextColumn::make('role')->label('Ruolo')->badge(), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([EditAction::make(), DeleteAction::make()]);
+        return $table->columns([TextColumn::make('name')->label('Nome')->searchable(), TextColumn::make('email')->label('Email')->searchable(), TextColumn::make('role')->label('Ruolo')->badge(), IconColumn::make('is_active')->label('Attivo')->boolean()])->recordActions([
+            EditAction::make(),
+            DeleteAction::make()->authorizationTooltip()->authorizationMessage('Non puoi eliminare l’ultimo amministratore attivo o un utente associato allo storico. Gli utenti già utilizzati si possono disattivare da Modifica.'),
+        ])->toolbarActions([
+            BulkActionGroup::make([
+                DeletionActions::bulk()->modalDescription('Confermi l’eliminazione degli utenti selezionati? Gli account associati allo storico e l’ultimo amministratore attivo saranno conservati.'),
+            ])->label('Azioni sui selezionati'),
+        ]);
     }
 
     public static function getPages(): array

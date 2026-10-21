@@ -2,8 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\DeletionActions;
 use App\Filament\Support\PrivateUpload;
 use App\Models\ManifestTemplate;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -43,7 +45,9 @@ class ManifestTemplateResource extends Resource
         return $table->modifyQueryUsing(fn ($query) => $query->withExists(['cases', 'documents']))->columns([
             ImageColumn::make('preview')->label('Anteprima')->state(fn (ManifestTemplate $record) => route('private.template', $record))->imageWidth(140)->imageHeight(100),
             TextColumn::make('title')->label('Titolo')->searchable()->sortable(), TextColumn::make('sort_order')->label('Ordine')->sortable(), IconColumn::make('is_active')->label('Attiva')->boolean(),
-        ])->defaultSort('sort_order')->recordActions([EditAction::make(), DeleteAction::make()->disabled(fn (ManifestTemplate $record) => $record->isUsed())->tooltip('Le cornici già utilizzate si possono disattivare, conservando lo storico.')])->emptyStateHeading('Carica le prime cornici')->emptyStateDescription('Puoi caricare più immagini insieme. Le cornici di esempio non fanno parte del catalogo definitivo.');
+        ])->defaultSort('sort_order')->recordActions([EditAction::make(), DeleteAction::make()->disabled(fn (ManifestTemplate $record) => $record->isUsed())->tooltip('Le cornici già utilizzate si possono disattivare, conservando lo storico.')])
+            ->toolbarActions([BulkActionGroup::make([DeletionActions::bulk()])->label('Azioni sui selezionati')])
+            ->emptyStateHeading('Carica le prime cornici')->emptyStateDescription('Puoi caricare più immagini insieme. Le cornici di esempio non fanno parte del catalogo definitivo.');
     }
 
     public static function getPages(): array

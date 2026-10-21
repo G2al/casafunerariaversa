@@ -34,6 +34,6 @@ class AdminPolicy
 
     public function deleteAny(User $user): bool
     {
-        return false;
+        return $user->isAdmin();
     }
 }

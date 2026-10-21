@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\DeletionActions;
 use App\Models\FuneralVehicle;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
@@ -38,7 +40,7 @@ class FuneralVehicleResource extends Resource
             EditAction::make(),
             DeleteAction::make()->disabled(fn (FuneralVehicle $record) => $record->isUsed())
                 ->tooltip(fn (FuneralVehicle $record) => $record->isUsed() ? 'Già associato a una pratica: disattivalo da Modifica.' : 'Elimina definitivamente questo mezzo.'),
-        ]);
+        ])->toolbarActions([BulkActionGroup::make([DeletionActions::bulk()])->label('Azioni sui selezionati')]);
     }
 
     public static function getPages(): array

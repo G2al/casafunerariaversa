@@ -15,9 +15,12 @@ use App\Services\CsvExport;
 use App\Services\DocumentData;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
+use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
@@ -192,7 +195,14 @@ class FuneralCaseResource extends Resource
             SelectFilter::make('operator_id')->label('Operatore')->options(fn () => auth()->user()?->isAdmin() ? User::pluck('name', 'id') : [])->visible(fn () => auth()->user()?->isAdmin()),
             ...static::dateFilters(), TrashedFilter::make()->visible(fn () => auth()->user()?->isAdmin()),
         ])->recordActions([
-            ViewAction::make(), EditAction::make(), ActionGroup::make(CaseActions::make())->label('PDF'), DeleteAction::make()->label('Archivia nel cestino'), RestoreAction::make(),
+            ViewAction::make(), EditAction::make(), ActionGroup::make(CaseActions::make())->label('PDF'),
+            DeleteAction::make()->label('Elimina')->tooltip('Sposta la pratica nel cestino, conservando dati e PDF.'), RestoreAction::make(),
+        ])->toolbarActions([
+            BulkActionGroup::make([
+                DeleteBulkAction::make()->label('Elimina selezionate')->authorizeIndividualRecords('delete')
+                    ->modalDescription('Le pratiche selezionate verranno spostate nel cestino. I dati e i PDF resteranno conservati; l’amministratore potrà ripristinarle.'),
+                RestoreBulkAction::make()->label('Ripristina selezionate')->authorizeIndividualRecords('restore'),
+            ])->label('Azioni sui selezionati'),
         ])->headerActions([
             Action::make('csv')->label('Esporta CSV filtrato')->action(fn ($livewire) => app(CsvExport::class)->cases($livewire->getFilteredTableQuery())),
         ])->emptyStateHeading('Nessuna pratica')->emptyStateDescription('Crea la prima pratica. Puoi completare i dati in seguito.');

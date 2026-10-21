@@ -44,7 +44,7 @@ class FuneralCasePolicy
 
     public function deleteAny(User $user): bool
     {
-        return false;
+        return $this->viewAny($user);
     }
 
     public function forceDelete(User $user, FuneralCase $case): bool

@@ -39,6 +39,8 @@ Il seeder è ripetibile: non aggiorna nomi, password, ruoli o stato degli accoun
 
 Un operatore vede solo le proprie pratiche, statistiche e file. L’amministratore può riassegnare le pratiche e ripristinare il cestino. Gli utenti associati allo storico si disabilitano, conservandone l’autore; l’ultimo amministratore attivo non può essere disabilitato, declassato o eliminato. La password dei nuovi utenti richiede almeno 12 caratteri; per cambiarla usare la modifica dell’utente.
 
+Le tabelle **Pratiche funebri**, **Mezzi**, **Personale trasporto**, **Cornici manifesti** e **Utenti** consentono la selezione multipla: spuntare le righe e aprire **Azioni sui selezionati → Elimina selezionati**. È disponibile anche l’eliminazione sulla singola riga. Le pratiche finiscono nel cestino, con ripristino singolo o multiplo riservato all’amministratore. Mezzi, personale e cornici già collegati a pratiche/PDF, gli utenti associati allo storico e l’ultimo admin attivo vengono conservati anche se inclusi nella selezione; il risultato dell’operazione segnala le eliminazioni parziali. Gli operatori possono eliminare in gruppo soltanto le proprie pratiche.
+
 ## Documenti da verificare
 
 I due template amministrativi riportano **BOZZA DA VERIFICARE**. Il riferimento 04 è annotato «Cremazione»; per il trasporto normale non è identificato con certezza un singolo originale. Il secondo generatore produce quindi una scheda operativa, senza presentarla come modulo ufficiale. Non vengono generati dichiarazione, verbale e delega aggiuntivi.
