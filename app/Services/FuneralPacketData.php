@@ -103,19 +103,19 @@ class FuneralPacketData
             ],
             'competent_city' => $case->competent_city,
             'director' => $this->person($case->technicalDirector) + [
-                'birth_place' => $case->technicalDirector->birth_place, 'birth_date' => $case->technicalDirector->birth_date?->format('d/m/Y'),
-                'residence_city' => $case->technicalDirector->residence_city, 'residence_address' => $case->technicalDirector->residence_address,
+                'birth_place' => $case->technicalDirector?->birth_place, 'birth_date' => $case->technicalDirector?->birth_date?->format('d/m/Y'),
+                'residence_city' => $case->technicalDirector?->residence_city, 'residence_address' => $case->technicalDirector?->residence_address,
             ],
             'staff' => $case->transportStaff->map(fn ($member) => $this->person($member))->values()->all(),
             'assigned_operator' => $this->person($case->staffMember),
-            'vehicle' => $case->vehicle->only(['name', 'plate', 'credentials']),
+            'vehicle' => $case->vehicle?->only(['name', 'plate', 'credentials']) ?? array_fill_keys(['name', 'plate', 'credentials'], null),
             'scope' => $case->transport_scope, 'origin' => $case->transport_origin,
             'destination' => $case->transport_destination, 'destination_city' => $case->transport_destination_city,
             'crematorium' => $case->crematorium,
             'distance_km' => $case->transport_distance_km,
-            'distance_description' => (float) $case->transport_distance_km < 100 ? 'meno di 100 Km' : rtrim(rtrim(number_format((float) $case->transport_distance_km, 2, ',', '.'), '0'), ',').' Km',
-            'transport_date' => $case->transport_at->format('d/m/Y'), 'transport_time' => $case->transport_at->format('H:i'),
-            'company_authorization_date' => Carbon::parse($company['company_authorization_date'])->format('d/m/Y'),
+            'distance_description' => blank($case->transport_distance_km) ? null : ((float) $case->transport_distance_km < 100 ? 'meno di 100 Km' : rtrim(rtrim(number_format((float) $case->transport_distance_km, 2, ',', '.'), '0'), ',').' Km'),
+            'transport_date' => $case->transport_at?->format('d/m/Y'), 'transport_time' => $case->transport_at?->format('H:i'),
+            'company_authorization_date' => $this->formatDate($company['company_authorization_date'] ?? null),
             'prior_transfer' => [
                 'destination' => $case->prior_transfer_destination, 'date' => $case->prior_transfer_date?->format('d/m/Y'),
                 'doctor' => $case->certifying_doctor, 'vehicle_plate' => $case->priorTransferVehicle?->plate,
@@ -126,9 +126,21 @@ class FuneralPacketData
         ];
     }
 
-    private function person(FuneralStaffMember $member): array
+    private function person(?FuneralStaffMember $member): array
     {
-        return $member->only(['name', 'qualification', 'credentials']);
+        return $member?->only(['name', 'qualification', 'credentials']) ?? array_fill_keys(['name', 'qualification', 'credentials'], null);
+    }
+
+    private function formatDate(?string $value, string $format = 'd/m/Y'): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+        try {
+            return Carbon::parse($value)->format($format);
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function packetMissing(FuneralCase $case, array $company): array
@@ -214,16 +226,16 @@ class FuneralPacketData
     private function packet(FuneralCase $case, array $company): array
     {
         $details = $this->details($case);
-        $date = fn (string $key) => Carbon::parse($details[$key])->format('d/m/Y');
-        $prefix = $details['identification_method'] === 'witness' ? 'witness' : 'identity';
+        $date = fn (string $key) => $this->formatDate($details[$key] ?? null);
+        $prefix = ($details['identification_method'] ?? null) === 'witness' ? 'witness' : 'identity';
 
         return [
             'identification' => [
-                'method' => $details['identification_method'],
-                'witness_name' => $prefix === 'witness' ? $details['witness_name'] : null,
-                'witness_relationship' => $prefix === 'witness' ? $details['witness_relationship'] : null,
-                'type' => $details[$prefix.'_document_type'], 'number' => $details[$prefix.'_document_number'],
-                'issuer' => $details[$prefix.'_document_issuer'], 'issued_at' => $date($prefix.'_document_issued_at'),
+                'method' => ($details['identification_method'] ?? null),
+                'witness_name' => $prefix === 'witness' ? ($details['witness_name'] ?? null) : null,
+                'witness_relationship' => $prefix === 'witness' ? ($details['witness_relationship'] ?? null) : null,
+                'type' => ($details[$prefix.'_document_type'] ?? null), 'number' => ($details[$prefix.'_document_number'] ?? null),
+                'issuer' => ($details[$prefix.'_document_issuer'] ?? null), 'issued_at' => $date($prefix.'_document_issued_at'),
                 'expires_at' => $date($prefix.'_document_expires_at'),
             ],
             'transport_purpose' => $details['transport_purpose'] ?? null,
@@ -231,23 +243,23 @@ class FuneralPacketData
                 'custodian' => $details['ashes_custodian'] ?? null, 'placement' => $details['ashes_placement'] ?? null,
                 'city' => $details['ashes_city'] ?? null, 'address' => $details['ashes_address'] ?? null,
             ],
-            'coffin_type' => $details['coffin_type'],
-            'wooden_lining' => in_array($details['coffin_type'], ['wood', 'biodegradable'], true) ? $details['wooden_lining'] : null,
+            'coffin_type' => ($details['coffin_type'] ?? null),
+            'wooden_lining' => in_array($details['coffin_type'] ?? null, ['wood', 'biodegradable'], true) ? ($details['wooden_lining'] ?? null) : null,
             'sanitary_precautions' => $details['sanitary_precautions'] ?? null,
-            'transport_authorization' => ['number' => $case->authorization_number, 'date' => $date('transport_authorization_date'), 'issuer' => $details['transport_authorization_issuer']],
-            'report_place' => $details['report_place'], 'report_date' => Carbon::parse($details['report_at'])->format('d/m/Y'), 'report_time' => Carbon::parse($details['report_at'])->format('H:i'),
-            'declaration_place' => $details['declaration_place'], 'declaration_date' => $date('declaration_date'),
+            'transport_authorization' => ['number' => $case->authorization_number, 'date' => $date('transport_authorization_date'), 'issuer' => ($details['transport_authorization_issuer'] ?? null)],
+            'report_place' => ($details['report_place'] ?? null), 'report_date' => $this->formatDate($details['report_at'] ?? null), 'report_time' => $this->formatDate($details['report_at'] ?? null, 'H:i'),
+            'declaration_place' => ($details['declaration_place'] ?? null), 'declaration_date' => $date('declaration_date'),
             'church' => $case->church, 'ceremony_city' => $case->ceremony_city,
-            'company_license_date' => Carbon::parse($company['practice_license_date'])->format('d/m/Y'),
-            'retail_authorization_date' => Carbon::parse($company['retail_authorization_date'])->format('d/m/Y'),
+            'company_license_date' => $this->formatDate($company['practice_license_date'] ?? null),
+            'retail_authorization_date' => $this->formatDate($company['retail_authorization_date'] ?? null),
             'family' => [
                 'name' => trim($case->contact_first_name.' '.$case->contact_last_name), 'relationship' => $case->contact_relationship,
-                'birth_place' => $details['contact_birth_place'], 'birth_date' => $date('contact_birth_date'),
+                'birth_place' => ($details['contact_birth_place'] ?? null), 'birth_date' => $date('contact_birth_date'),
                 'city' => $case->contact_city, 'address' => $case->contact_address, 'phone' => $case->contact_phone, 'email' => $case->contact_email,
             ],
             'mandate_date' => $date('mandate_date'),
             'publication_company_name' => filled($company['publication_company_name'] ?? null) ? $company['publication_company_name'] : $company['legal_name'],
-            'publication_company_city' => filled($company['publication_company_name'] ?? null) ? $company['publication_company_city'] : $company['company_city'],
+            'publication_company_city' => filled($company['publication_company_name'] ?? null) ? ($company['publication_company_city'] ?? null) : $company['company_city'],
         ];
     }
 

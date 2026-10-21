@@ -84,13 +84,21 @@ class PdfWorkflowTest extends TestCase
         $this->get(route('private.photo', $case))->assertForbidden();
     }
 
-    public function test_incomplete_case_cannot_generate_and_preview_lists_missing_fields(): void
+    public function test_incomplete_cases_can_preview_generate_and_download_documents(): void
     {
+        Storage::fake('local');
         $this->actingAs(User::factory()->create());
-        $case = FuneralCase::create(['type' => 'cremation']);
-        $this->get(route('private.preview', [$case, 'document']))->assertStatus(422)->assertSee('Dati mancanti');
-        $this->expectException(ValidationException::class);
-        app(PdfGenerator::class)->generate($case, 'document');
+        foreach (['cremation', 'standard_transport'] as $type) {
+            $case = FuneralCase::create(['type' => $type]);
+            $this->get(route('private.preview', [$case, 'document']))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+            $document = app(PdfGenerator::class)->generate($case, 'document');
+            $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($document->file_path));
+            $this->assertNull($document->snapshot['request']['transport_date']);
+            $this->assertNull($document->snapshot['request']['packet']['report_date']);
+            $this->assertNull($document->snapshot['request']['distance_description']);
+            $this->assertNull($document->snapshot['request']['director']['name']);
+            $this->get(route('private.document', $document))->assertOk();
+        }
     }
 
     public function test_long_names_fit_and_excessive_text_is_rejected(): void

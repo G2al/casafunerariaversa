@@ -147,7 +147,7 @@ class FuneralCaseResource extends Resource
                 Select::make('operator_id')->label('Operatore proprietario')->options(fn () => auth()->user()?->isAdmin() ? User::where('is_active', true)->pluck('name', 'id') : [])->searchable()->visible(fn () => auth()->user()?->isAdmin()),
                 Placeholder::make('completeness')->label('Completezza dati salvati')->content(function (?FuneralCase $record) {
                     if (! $record) {
-                        return 'Puoi salvare una bozza anche senza nominativo. I dati mancanti saranno indicati prima della stampa.';
+                        return 'Puoi salvare una bozza anche senza nominativo. Anteprima e generazione del documento sono disponibili anche con dati incompleti.';
                     }
                     $service = app(DocumentData::class);
 

@@ -107,7 +107,7 @@ class CremationRequestTest extends TestCase
         $this->assertStringContainsString('Direttore Esempio', $html);
     }
 
-    public function test_missing_roles_company_details_and_partial_prior_transfer_prevent_printing(): void
+    public function test_missing_roles_company_details_and_partial_prior_transfer_do_not_prevent_printing(): void
     {
         $case = FuneralCase::create(['type' => 'cremation']);
         $missing = app(DocumentData::class)->missing($case, 'document');
@@ -121,8 +121,8 @@ class CremationRequestTest extends TestCase
         $this->assertContains('Medico della certificazione', $missing);
         $case->transportStaff()->detach($case->staff_member_id);
         $case->unsetRelation('transportStaff');
-        $this->expectException(ValidationException::class);
-        app(PdfGenerator::class)->generate($case, 'document');
+        $document = app(PdfGenerator::class)->generate($case, 'document');
+        $this->assertNotNull($document->id);
     }
 
     public function test_distance_over_100_and_previous_transfer_are_printed_as_entered(): void

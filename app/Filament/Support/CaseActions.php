@@ -28,7 +28,7 @@ class CaseActions
 
                         return redirect()->to(route('private.document', $document));
                     } catch (ValidationException $error) {
-                        Notification::make()->danger()->title('Completa i dati prima di generare')->body(implode(' ', Arr::flatten($error->errors())))->persistent()->send();
+                        Notification::make()->danger()->title('Impossibile generare il PDF')->body(implode(' ', Arr::flatten($error->errors())))->persistent()->send();
                     }
                 });
         }

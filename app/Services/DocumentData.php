@@ -27,14 +27,19 @@ class DocumentData
 
     public function assemble(FuneralCase $case, string $kind): array
     {
-        $missing = $this->missing($case, $kind);
-        if ($missing) {
+        $missing = $kind === 'document' ? [] : $this->missing($case, $kind);
+        if ($kind !== 'document' && $missing) {
             throw ValidationException::withMessages(['document' => 'Dati mancanti: '.implode(', ', $missing).'. Salva la pratica dopo averli compilati.']);
         }
         $company = CompanySettings::current();
         $images = app(PrivateImage::class);
         $data = ['code' => $case->code, 'name' => $case->full_name, 'age' => $case->age, 'type' => $case->type->value, 'type_label' => $case->type->getLabel(), 'company' => $company, 'generated_at' => now()->format('d/m/Y H:i'), 'logo' => $images->dataUri($company['logo_path'] ?? null)];
         if ($kind === 'document') {
+            $data['company'] = $company = array_replace(array_fill_keys([
+                'legal_name', 'company_city', 'company_address', 'company_authorization_protocol', 'company_authorization_issuer',
+                'chamber_city', 'rea_number', 'tax_number', 'practice_license_protocol', 'practice_license_issuer',
+                'retail_authorization_protocol', 'retail_authorization_issuer', 'inps_position', 'inail_position',
+            ], null), $company);
             $data['logo'] ??= 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png')));
             $data['request'] = app(FuneralPacketData::class)->assemble($case, $company);
 
