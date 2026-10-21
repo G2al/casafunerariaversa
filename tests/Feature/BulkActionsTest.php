@@ -33,7 +33,7 @@ class BulkActionsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
     }
 
-    public function test_operator_bulk_delete_is_scoped_and_soft_deleted_cases_can_be_restored_by_admin(): void
+    public function test_operator_bulk_delete_is_scoped_and_permanent(): void
     {
         $operator = User::factory()->create();
         $this->actingAs($operator);
@@ -44,19 +44,14 @@ class BulkActionsTest extends TestCase
         $this->actingAs($operator);
         Livewire::test(ListCases::class)->selectTableRecords([$own, $second, $foreign])
             ->callAction(TestAction::make('delete')->table()->bulk());
-        $this->assertSoftDeleted($own);
-        $this->assertSoftDeleted($second);
+        $this->assertModelMissing($own);
+        $this->assertModelMissing($second);
         $this->assertNotSoftDeleted($foreign);
-        $this->assertSame(2, AuditEvent::where('event', 'deleted')->where('user_id', $operator->id)->count());
-        $this->assertFalse(Gate::allows('forceDeleteAny', FuneralCase::class));
+        $this->assertSame(2, AuditEvent::where('event', 'permanently_deleted')->where('user_id', $operator->id)->count());
+        $this->assertTrue(Gate::allows('forceDeleteAny', FuneralCase::class));
         Livewire::test(ListCases::class)->assertActionHidden(TestAction::make('restore')->table()->bulk());
 
-        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
-        Livewire::test(ListCases::class)->filterTable('trashed', false)->selectTableRecords([$own, $second])
-            ->callAction(TestAction::make('restore')->table()->bulk());
-        $this->assertNotSoftDeleted($own);
-        $this->assertNotSoftDeleted($second);
-        $this->assertSame(2, AuditEvent::where('event', 'restored')->count());
+        $this->assertSame(0, FuneralCase::withTrashed()->whereIn('id', [$own->id, $second->id])->count());
     }
 
     public function test_transport_bulk_delete_skips_used_records_including_archived_cases(): void

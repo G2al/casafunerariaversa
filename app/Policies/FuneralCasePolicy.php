@@ -49,11 +49,11 @@ class FuneralCasePolicy
 
     public function forceDelete(User $user, FuneralCase $case): bool
     {
-        return false;
+        return $this->view($user, $case);
     }
 
     public function forceDeleteAny(User $user): bool
     {
-        return false;
+        return $this->viewAny($user);
     }
 }

@@ -6,6 +6,7 @@ use App\Enums\CaseStatus;
 use App\Enums\CaseType;
 use App\Enums\IdentityDocumentType;
 use App\Services\CaseNumber;
+use App\Services\DeleteFuneralCase;
 use App\Services\PrivateIdentityDocument;
 use App\Services\PrivateImage;
 use Filament\Facades\Filament;
@@ -102,6 +103,11 @@ class FuneralCase extends Model
         }
 
         return $user->isAdmin() ? $query : $query->where('operator_id', $user->id);
+    }
+
+    public function forceDelete(): ?bool
+    {
+        return app(DeleteFuneralCase::class)->delete($this);
     }
 
     public function getFullNameAttribute(): string

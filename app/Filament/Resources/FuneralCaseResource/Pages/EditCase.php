@@ -4,7 +4,7 @@ namespace App\Filament\Resources\FuneralCaseResource\Pages;
 
 use App\Filament\Resources\FuneralCaseResource;
 use App\Filament\Support\CaseActions;
-use Filament\Actions\DeleteAction;
+use App\Filament\Support\FuneralCaseDeletionActions;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 
@@ -19,6 +19,6 @@ class EditCase extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [...CaseActions::make(), DeleteAction::make(), RestoreAction::make()];
+        return [...CaseActions::make(), FuneralCaseDeletionActions::single(), RestoreAction::make()];
     }
 }

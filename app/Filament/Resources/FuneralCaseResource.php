@@ -6,6 +6,7 @@ use App\Enums\CaseStatus;
 use App\Enums\CaseType;
 use App\Filament\Resources\FuneralCaseResource\RelationManagers\DocumentsRelationManager;
 use App\Filament\Support\CaseActions;
+use App\Filament\Support\FuneralCaseDeletionActions;
 use App\Filament\Support\FuneralPacketForm;
 use App\Filament\Support\IdentityDocumentForm;
 use App\Filament\Support\PrivateUpload;
@@ -18,8 +19,6 @@ use App\Services\DocumentData;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteAction;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
@@ -200,11 +199,10 @@ class FuneralCaseResource extends Resource
             ...static::dateFilters(), TrashedFilter::make()->visible(fn () => auth()->user()?->isAdmin()),
         ])->recordActions([
             ViewAction::make(), EditAction::make(), ActionGroup::make(CaseActions::make())->label('PDF'),
-            DeleteAction::make()->label('Elimina')->tooltip('Sposta la pratica nel cestino, conservando dati e PDF.'), RestoreAction::make(),
+            FuneralCaseDeletionActions::single(), RestoreAction::make(),
         ])->toolbarActions([
             BulkActionGroup::make([
-                DeleteBulkAction::make()->label('Elimina selezionate')->authorizeIndividualRecords('delete')
-                    ->modalDescription('Le pratiche selezionate verranno spostate nel cestino. I dati e i PDF resteranno conservati; l’amministratore potrà ripristinarle.'),
+                FuneralCaseDeletionActions::bulk(),
                 RestoreBulkAction::make()->label('Ripristina selezionate')->authorizeIndividualRecords('restore'),
             ])->label('Azioni sui selezionati'),
         ])->headerActions([
