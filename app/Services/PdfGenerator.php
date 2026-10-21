@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\CaseType;
 use App\Models\AuditEvent;
 use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
@@ -24,7 +23,7 @@ class PdfGenerator
             $data['layout'] = app(ManifestLayout::class)->fit($data);
         }
         $view = $kind === 'manifest' ? 'pdf.manifest' : 'pdf.'.$case->type->value;
-        $cremationRequest = $kind === 'document' && $case->type === CaseType::Cremation;
+        $cremationRequest = $kind === 'document';
         foreach ($cremationRequest ? [9.2, 8.8, 8.4, 8.0, 7.6, 7.2] : [null] as $fontSize) {
             if ($cremationRequest) {
                 $data['request']['font_size'] = $fontSize;

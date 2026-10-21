@@ -47,6 +47,9 @@ trait CreatesCremationRequest
             'contact_first_name' => 'Familiare', 'contact_last_name' => 'Esempio', 'contact_relationship' => 'Figlia',
             'contact_city' => 'Comune residenza', 'contact_address' => 'Via Familiare 18', 'contact_phone' => '0000000000', 'contact_email' => 'family@example.test',
             'cremation_details' => [
+                'transport_purpose' => 'cremato presso il crematorio di prova',
+                'ashes_custodian' => 'Familiare Esempio', 'ashes_placement' => 'Cimitero di prova',
+                'ashes_city' => 'Comune destinazione ceneri', 'ashes_address' => 'Via Ceneri 15',
                 'identification_method' => 'document', 'identity_document_type' => 'Carta identità', 'identity_document_number' => 'DOC-TEST-123',
                 'identity_document_issuer' => 'Comune esempio', 'identity_document_issued_at' => '2020-01-01', 'identity_document_expires_at' => '2030-01-01',
                 'coffin_type' => 'wood', 'wooden_lining' => 'Tessuto dimostrativo', 'sanitary_precautions' => 'Nessuna particolare',

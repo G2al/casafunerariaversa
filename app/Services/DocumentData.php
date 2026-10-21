@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\CaseType;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use Illuminate\Validation\ValidationException;
@@ -16,13 +15,11 @@ class DocumentData
             $fields += ['sex' => 'Sesso', 'manifest_template_id' => 'Cornice'];
         } else {
             $fields += ['birth_date' => 'Data di nascita', 'birth_place' => 'Luogo di nascita', 'death_place' => 'Luogo del decesso', 'transport_at' => 'Data e ora trasporto', 'transport_destination' => 'Destinazione trasporto'];
-            if ($case->type === CaseType::Cremation) {
-                $fields['crematorium'] = 'Crematorio';
-            }
+            $fields['crematorium'] = 'Crematorio';
         }
         $missing = array_values(array_filter($fields, fn ($label, $field) => blank($case->$field), ARRAY_FILTER_USE_BOTH));
-        if ($kind === 'document' && $case->type === CaseType::Cremation) {
-            $missing = array_merge($missing, app(CremationRequestData::class)->missing($case));
+        if ($kind === 'document') {
+            $missing = array_merge($missing, app(FuneralPacketData::class)->missing($case));
         }
 
         return $missing;
@@ -37,37 +34,9 @@ class DocumentData
         $company = CompanySettings::current();
         $images = app(PrivateImage::class);
         $data = ['code' => $case->code, 'name' => $case->full_name, 'age' => $case->age, 'type' => $case->type->value, 'type_label' => $case->type->getLabel(), 'company' => $company, 'generated_at' => now()->format('d/m/Y H:i'), 'logo' => $images->dataUri($company['logo_path'] ?? null)];
-        if ($kind === 'document' && $case->type === CaseType::Cremation) {
-            $data['logo'] ??= 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png')));
-            $data['request'] = app(CremationRequestData::class)->assemble($case, $company);
-
-            return $data;
-        }
         if ($kind === 'document') {
-            $rows = [];
-            foreach (config('funeral.sections') as $section => $fields) {
-                if ($section === 'Cremazione' && $case->type !== CaseType::Cremation) {
-                    continue;
-                }
-                foreach ($fields as $field => $label) {
-                    if (in_array($field, ['death_cause'], true) || blank($case->$field)) {
-                        continue;
-                    }
-                    $value = $case->$field;
-                    if ($field === 'sex') {
-                        $value = $value === 'female' ? 'Femmina' : 'Maschio';
-                    }
-                    if ($field === 'burial_type') {
-                        $value = ['burial' => 'Inumazione', 'entombment' => 'Tumulazione', 'other' => 'Altro'][$value] ?? $value;
-                    }
-                    $rows[$section][$label] = $value instanceof \DateTimeInterface ? $value->format(str_ends_with($field, '_date') ? 'd/m/Y' : 'd/m/Y H:i') : $value;
-                }
-            }
-            $case->loadMissing(['staffMember', 'vehicle', 'transportStaff']);
-            $data['rows'] = $rows;
-            $data['staff'] = $case->staffMember?->only(['name', 'qualification', 'credentials']);
-            $data['staff_list'] = $case->transportStaff->map(fn ($member) => $member->only(['name', 'qualification', 'credentials']))->all();
-            $data['vehicle'] = $case->vehicle?->only(['name', 'plate', 'credentials']);
+            $data['logo'] ??= 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png')));
+            $data['request'] = app(FuneralPacketData::class)->assemble($case, $company);
 
             return $data;
         }

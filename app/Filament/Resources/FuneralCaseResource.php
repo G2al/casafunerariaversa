@@ -6,7 +6,8 @@ use App\Enums\CaseStatus;
 use App\Enums\CaseType;
 use App\Filament\Resources\FuneralCaseResource\RelationManagers\DocumentsRelationManager;
 use App\Filament\Support\CaseActions;
-use App\Filament\Support\CremationRequestForm;
+use App\Filament\Support\FuneralPacketForm;
+use App\Filament\Support\IdentityDocumentForm;
 use App\Filament\Support\PrivateUpload;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
@@ -116,12 +117,12 @@ class FuneralCaseResource extends Resource
                 $components[] = Select::make('transportStaff')->label('Personale da riportare nel documento')->relationship('transportStaff', 'name', fn (Builder $query) => $query->where('is_active', true))->multiple()->searchable()->preload()->maxItems(16)->columnSpanFull()->helperText('Seleziona i nominativi da stampare con qualifica ed estremi di abilitazione, includendo l’operatore incaricato del trasporto.');
             }
             $tab = Tab::make($section)->schema([Section::make($section)->schema($components)->columns(['default' => 1, 'md' => 2])]);
-            if ($section === 'Cremazione') {
-                $tab->visible(fn (Get $get) => $get('type') === 'cremation' || $get('type') === CaseType::Cremation);
-                $tab->schema([Section::make($section)->schema($components)->columns(['default' => 1, 'md' => 2]), ...CremationRequestForm::sections()]);
-            }
             $tabs[] = $tab;
+            if ($section === 'Defunto') {
+                $tabs[] = Tab::make('Documento del defunto')->schema([IdentityDocumentForm::section()]);
+            }
         }
+        $tabs[] = Tab::make('Documentazione')->schema(FuneralPacketForm::sections());
         $tabs[] = Tab::make('Manifesto')->schema([
             Section::make('Cornice e contenuti')->description('Salva la pratica prima di aprire l’anteprima. L’anteprima è il PDF effettivo.')->schema([
                 Select::make('manifest_template_id')->label('Cornice')->options(fn () => ManifestTemplate::where('is_active', true)->orderBy('sort_order')->pluck('title', 'id'))->searchable()->live()

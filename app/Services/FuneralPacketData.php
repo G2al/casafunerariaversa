@@ -2,13 +2,15 @@
 
 namespace App\Services;
 
+use App\Enums\CaseType;
+use App\Enums\IdentityDocumentType;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\FuneralStaffMember;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Validator;
 
-class CremationRequestData
+class FuneralPacketData
 {
     public function missing(FuneralCase $case): array
     {
@@ -89,7 +91,7 @@ class CremationRequestData
     public function assemble(FuneralCase $case, array $company): array
     {
         return [
-            'template' => 'cremation_packet_4_pages_v2',
+            'template' => $case->type === CaseType::Cremation ? 'cremation_packet_4_pages_v2' : 'standard_transport_packet_4_pages_v1',
             'packet' => $this->packet($case, $company),
             'deceased' => [
                 'name' => $case->full_name, 'female' => $case->sex === 'female',
@@ -131,7 +133,7 @@ class CremationRequestData
 
     private function packetMissing(FuneralCase $case, array $company): array
     {
-        $details = $case->cremation_details ?? [];
+        $details = $this->details($case);
         $labels = [
             'identification_method' => 'Modalità di identificazione', 'coffin_type' => 'Confezionamento del feretro',
             'transport_authorization_date' => 'Data autorizzazione del singolo trasporto',
@@ -150,6 +152,12 @@ class CremationRequestData
         $rules['contact_birth_date'] .= '|before_or_equal:today';
         $rules['report_at'] = 'required|date';
         $rules['sanitary_precautions'] = 'nullable|string|max:255';
+        if ($case->type === CaseType::StandardTransport) {
+            foreach (['transport_purpose' => 'Finalità del trasporto (per essere)', 'ashes_custodian' => 'Affidatario delle ceneri', 'ashes_placement' => 'Luogo di deposizione delle ceneri', 'ashes_city' => 'Comune di destinazione delle ceneri', 'ashes_address' => 'Indirizzo di destinazione delle ceneri'] as $field => $label) {
+                $labels[$field] = $label;
+                $rules[$field] = 'required|string|max:255';
+            }
+        }
         if (in_array($details['coffin_type'] ?? '', ['wood', 'biodegradable'], true)) {
             $labels['wooden_lining'] = 'Fodera interna della cassa di legno';
             $rules['wooden_lining'] = 'required|string|max:255';
@@ -205,7 +213,7 @@ class CremationRequestData
 
     private function packet(FuneralCase $case, array $company): array
     {
-        $details = $case->cremation_details;
+        $details = $this->details($case);
         $date = fn (string $key) => Carbon::parse($details[$key])->format('d/m/Y');
         $prefix = $details['identification_method'] === 'witness' ? 'witness' : 'identity';
 
@@ -217,6 +225,11 @@ class CremationRequestData
                 'type' => $details[$prefix.'_document_type'], 'number' => $details[$prefix.'_document_number'],
                 'issuer' => $details[$prefix.'_document_issuer'], 'issued_at' => $date($prefix.'_document_issued_at'),
                 'expires_at' => $date($prefix.'_document_expires_at'),
+            ],
+            'transport_purpose' => $details['transport_purpose'] ?? null,
+            'ashes' => [
+                'custodian' => $details['ashes_custodian'] ?? null, 'placement' => $details['ashes_placement'] ?? null,
+                'city' => $details['ashes_city'] ?? null, 'address' => $details['ashes_address'] ?? null,
             ],
             'coffin_type' => $details['coffin_type'],
             'wooden_lining' => in_array($details['coffin_type'], ['wood', 'biodegradable'], true) ? $details['wooden_lining'] : null,
@@ -236,5 +249,16 @@ class CremationRequestData
             'publication_company_name' => filled($company['publication_company_name'] ?? null) ? $company['publication_company_name'] : $company['legal_name'],
             'publication_company_city' => filled($company['publication_company_name'] ?? null) ? $company['publication_company_city'] : $company['company_city'],
         ];
+    }
+
+    private function details(FuneralCase $case): array
+    {
+        $details = $case->cremation_details ?? [];
+        if ($case->identity_document_type) {
+            $type = $case->identity_document_type;
+            $details['identity_document_type'] = ($type instanceof IdentityDocumentType ? $type : IdentityDocumentType::from($type))->getLabel();
+        }
+
+        return $details;
     }
 }

@@ -29,9 +29,7 @@ class PdfWorkflowTest extends TestCase
         $this->actingAs(User::factory()->create());
         foreach (['cremation', 'standard_transport'] as $type) {
             $case = $this->completeCase($type);
-            if ($type === 'cremation') {
-                $case = $this->prepareRequest($case);
-            }
+            $case = $this->prepareRequest($case);
             $this->assertNotSame('Dato sanitario riservato', $case->getRawOriginal('death_cause'));
             $one = app(PdfGenerator::class)->generate($case, 'document');
             $bytes = Storage::disk('local')->get($one->file_path);

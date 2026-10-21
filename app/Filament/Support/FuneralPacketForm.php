@@ -2,15 +2,17 @@
 
 namespace App\Filament\Support;
 
+use App\Enums\CaseType;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Database\Eloquent\Builder;
 
-class CremationRequestForm
+class FuneralPacketForm
 {
     public static function sections(): array
     {
@@ -32,7 +34,7 @@ class CremationRequestForm
             ])->columns(['default' => 1, 'md' => 2]),
             Section::make('Identificazione del defunto — pagina 2')->schema([
                 Select::make('cremation_details.identification_method')->label('Modalità di identificazione')->options(['document' => 'Documento del defunto', 'witness' => 'Conoscenza diretta tramite testimone'])->live()->helperText('Compila i dati del documento oppure del testimone, secondo il caso.'),
-                Section::make('Documento del defunto')->visible(fn (Get $get) => $get('cremation_details.identification_method') === 'document')->schema(self::documentFields('identity'))->columns(2)->columnSpanFull(),
+                Placeholder::make('identity_document_hint')->label('Documento del defunto')->content('Gli estremi e i caricamenti fronte/retro si compilano nel tab Documento del defunto.')->visible(fn (Get $get) => $get('cremation_details.identification_method') === 'document'),
                 Section::make('Testimone')->visible(fn (Get $get) => $get('cremation_details.identification_method') === 'witness')->schema([
                     self::text('witness_name', 'Nome e cognome del testimone'),
                     self::text('witness_relationship', 'In qualità di / rapporto con il defunto'),
@@ -61,6 +63,13 @@ class CremationRequestForm
                 self::date('contact_birth_date', 'Data di nascita del familiare')->maxDate(today()),
                 self::date('mandate_date', 'Data della delega'),
             ])->description('Nome, cognome, parentela, indirizzo completo di civico, Comune, telefono ed email vengono dal tab Familiare referente. Le firme restano da apporre sul cartaceo.')->columns(['default' => 1, 'md' => 2]),
+            Section::make('Finalità del trasporto e destinazione delle ceneri')->description('Campi presenti nelle pagine originali del trasporto normale, mantenuti come richiesto.')->visible(fn (Get $get) => in_array($get('type'), ['standard_transport', CaseType::StandardTransport], true))->schema([
+                self::text('transport_purpose', 'Finalità del trasporto (per essere)')->columnSpanFull(),
+                self::text('ashes_custodian', 'Le ceneri saranno affidate a'),
+                self::text('ashes_placement', 'Le ceneri saranno deposte presso / in'),
+                self::text('ashes_city', 'Comune di destinazione delle ceneri'),
+                self::text('ashes_address', 'Indirizzo completo di destinazione delle ceneri'),
+            ])->columns(['default' => 1, 'md' => 2]),
         ];
     }
 

@@ -7,6 +7,7 @@ use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
 use App\Models\ManifestTemplate;
 use App\Services\PdfGenerator;
+use App\Services\PrivateIdentityDocument;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +48,19 @@ class PrivateFilesController extends Controller
         abort_unless(Storage::disk('local')->exists($template->image_path), 404);
 
         return Storage::disk('local')->response($template->image_path, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    public function identity(FuneralCase $case, string $side)
+    {
+        Gate::authorize('view', $case);
+        abort_unless(in_array($side, ['front', 'back'], true), 404);
+        $path = $case->{'identity_'.$side.'_path'};
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+        app(PrivateIdentityDocument::class)->validate($path);
+
+        return Storage::disk('local')->download($path, $case->code.'-documento-'.$side.'.'.pathinfo($path, PATHINFO_EXTENSION), [
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     public function logo()

@@ -4,7 +4,9 @@ namespace App\Models;
 
 use App\Enums\CaseStatus;
 use App\Enums\CaseType;
+use App\Enums\IdentityDocumentType;
 use App\Services\CaseNumber;
+use App\Services\PrivateIdentityDocument;
 use App\Services\PrivateImage;
 use Filament\Facades\Filament;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Validation\ValidationException;
 
 class FuneralCase extends Model
@@ -73,6 +77,14 @@ class FuneralCase extends Model
             }
             if ($case->isDirty('photo_path') && $case->photo_path) {
                 app(PrivateImage::class)->dataUri($case->photo_path);
+            }
+            if ($case->isDirty('identity_document_type')) {
+                Validator::make(['identity_document_type' => $case->identity_document_type], ['identity_document_type' => ['nullable', new Enum(IdentityDocumentType::class)]])->validate();
+            }
+            foreach (['identity_front_path', 'identity_back_path'] as $field) {
+                if ($case->isDirty($field) && $case->$field) {
+                    app(PrivateIdentityDocument::class)->validate($case->$field);
+                }
             }
         });
         foreach (['created', 'updated', 'deleted', 'restored'] as $event) {

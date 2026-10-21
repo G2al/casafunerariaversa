@@ -69,6 +69,8 @@ class ReportsAndSecurityTest extends TestCase
         $migration = require database_path('migrations/2026_10_19_000100_create_funeral_management.php');
         $requestMigration = require database_path('migrations/2026_10_21_000100_add_cremation_request_fields.php');
         $packetMigration = require database_path('migrations/2026_10_21_000200_add_cremation_packet_details.php');
+        $identityMigration = require database_path('migrations/2026_10_21_000300_add_identity_document_uploads.php');
+        $identityMigration->down();
         $packetMigration->down();
         $requestMigration->down();
         $migration->down();
@@ -82,5 +84,6 @@ class ReportsAndSecurityTest extends TestCase
         $this->assertSame(0, DB::table('users')->whereNotNull('role')->count());
         $requestMigration->up();
         $packetMigration->up();
+        $identityMigration->up();
     }
 }
