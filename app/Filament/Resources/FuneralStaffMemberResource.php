@@ -40,7 +40,7 @@ class FuneralStaffMemberResource extends Resource
             TextInput::make('credentials')->label('Estremi abilitazione')->maxLength(255),
             Toggle::make('is_active')->label('Attivo')->default(true)->helperText('Disattiva il personale già associato a pratiche per conservarne lo storico.'),
             Toggle::make('is_technical_director')->label('Abilitato come direttore tecnico')->default(false)->live(),
-            Section::make('Anagrafica del direttore tecnico')->description('Dati necessari per compilare il richiedente nella domanda di trasporto.')->visible(fn (Get $get) => $get('is_technical_director'))->schema([
+            Section::make('Anagrafica del direttore tecnico')->description('Dati facoltativi: se mancanti, nei documenti restano gli spazi da compilare a mano.')->visible(fn (Get $get) => $get('is_technical_director'))->schema([
                 TextInput::make('birth_place')->label('Luogo di nascita')->maxLength(255),
                 DatePicker::make('birth_date')->label('Data di nascita')->displayFormat('d/m/Y')->maxDate(today()),
                 TextInput::make('residence_city')->label('Comune di residenza')->maxLength(255),

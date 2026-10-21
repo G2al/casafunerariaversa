@@ -36,12 +36,6 @@ class CremationRequestData
         $director = $case->technicalDirector;
         if (! $director || ! $director->is_active || ! $director->is_technical_director) {
             $missing[] = 'Direttore tecnico attivo e abilitato';
-        } else {
-            foreach (['birth_place' => 'Luogo di nascita', 'birth_date' => 'Data di nascita', 'residence_city' => 'Comune di residenza', 'residence_address' => 'Indirizzo di residenza'] as $field => $label) {
-                if (blank($director->$field)) {
-                    $missing[] = $label.' del direttore tecnico (Personale trasporto)';
-                }
-            }
         }
         if (! $case->vehicle?->is_active || blank($case->vehicle?->plate)) {
             $missing[] = 'Mezzo attivo con targa';
@@ -107,7 +101,7 @@ class CremationRequestData
             ],
             'competent_city' => $case->competent_city,
             'director' => $this->person($case->technicalDirector) + [
-                'birth_place' => $case->technicalDirector->birth_place, 'birth_date' => $case->technicalDirector->birth_date->format('d/m/Y'),
+                'birth_place' => $case->technicalDirector->birth_place, 'birth_date' => $case->technicalDirector->birth_date?->format('d/m/Y'),
                 'residence_city' => $case->technicalDirector->residence_city, 'residence_address' => $case->technicalDirector->residence_address,
             ],
             'staff' => $case->transportStaff->map(fn ($member) => $this->person($member))->values()->all(),

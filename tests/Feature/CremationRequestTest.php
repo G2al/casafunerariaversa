@@ -89,6 +89,24 @@ class CremationRequestTest extends TestCase
         }
     }
 
+    public function test_director_demographics_are_optional_in_preview_and_generated_pdf(): void
+    {
+        $case = $this->prepareRequest(FuneralCase::create(['type' => 'cremation']));
+        $case->technicalDirector->update(['birth_place' => null, 'birth_date' => null, 'residence_city' => null, 'residence_address' => null]);
+        $case = $case->fresh();
+        $this->assertSame([], app(DocumentData::class)->missing($case, 'document'));
+        $this->get(route('private.preview', [$case, 'document']))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $document = app(PdfGenerator::class)->generate($case, 'document');
+        $this->assertSame(4, preg_match_all('~/Type\s*/Page\b~', Storage::disk('local')->get($document->file_path)));
+        foreach (['birth_place', 'birth_date', 'residence_city', 'residence_address'] as $field) {
+            $this->assertNull($document->snapshot['request']['director'][$field]);
+        }
+        $html = view('pdf.cremation', ['data' => $document->snapshot])->render();
+        $this->assertStringContainsString('nato il ________________ a ________________', $html);
+        $this->assertStringContainsString('nato a ________________ il ________________, residente in ________________, ________________', $html);
+        $this->assertStringContainsString('Direttore Esempio', $html);
+    }
+
     public function test_missing_roles_company_details_and_partial_prior_transfer_prevent_printing(): void
     {
         $case = FuneralCase::create(['type' => 'cremation']);

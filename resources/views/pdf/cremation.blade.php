@@ -31,6 +31,9 @@ p { margin:0 0 4pt; } .center { text-align:center; } .strong { font-weight:bold;
     $r = $data['request']; $d = $r['deceased']; $director = $r['director']; $company = $data['company'];
     $packet = $r['packet'];
     $fill = fn ($value) => filled($value) ? $value : '________________';
+    foreach (['birth_place', 'birth_date', 'residence_city', 'residence_address'] as $field) {
+        $director[$field] = $fill($director[$field]);
+    }
 @endphp
 <div class="brand"><img src="{{ $data['logo'] }}" alt="Casa Funeraria Aversa"></div>
 <h1>Domanda di autorizzazione per trasporto di salma</h1>
