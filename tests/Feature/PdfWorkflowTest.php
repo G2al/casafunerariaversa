@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
 use App\Models\User;
@@ -60,6 +61,10 @@ class PdfWorkflowTest extends TestCase
             $this->assertStringContainsString('/MediaBox [0.000 0.000 841.890 595.280]', Storage::disk('local')->get($pdf->file_path));
         }
         $image = imagecreatetruecolor(160, 200);
+        imagefill($image, 0, 0, imagecolorallocate($image, 235, 235, 235));
+        $gray = imagecolorallocate($image, 155, 155, 155);
+        imagefilledellipse($image, 80, 65, 56, 64, $gray);
+        imagefilledellipse($image, 80, 175, 120, 120, $gray);
         ob_start();
         imagepng($image);
         $png = ob_get_clean();
@@ -95,6 +100,9 @@ class PdfWorkflowTest extends TestCase
         $case->update(['manifest_template_id' => $frame->id, 'first_name' => 'Persona con un nome composto particolarmente lungo', 'last_name' => 'Cognome dimostrativo con più elementi', 'manifest_options' => ['family_text' => str_repeat('Familiari e amici partecipano al ricordo della persona cara. ', 8)]]);
         $pdf = app(PdfGenerator::class)->generate($case->fresh(), 'manifest');
         $layout = $pdf->snapshot['layout'];
+        $nameLines = array_filter($layout['lines'], fn ($line) => $line['bold'] && $line['size'] > 18);
+        $this->assertNotEmpty($nameLines);
+        $this->assertLessThanOrEqual(2, count($nameLines));
         foreach ($layout['lines'] as $line) {
             $this->assertLessThanOrEqual($layout['area']['y'] + $layout['area']['h'], $line['y'] + $line['size'] * 1.5);
         }
@@ -102,6 +110,51 @@ class PdfWorkflowTest extends TestCase
         $case->update(['manifest_options' => ['family_text' => str_repeat('Testo eccessivo. ', 500)]]);
         $this->expectException(ValidationException::class);
         app(PdfGenerator::class)->generate($case->fresh(), 'manifest');
+    }
+
+    public function test_photo_logo_and_text_share_one_center_and_fit_without_overlaps(): void
+    {
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        Storage::disk('local')->put('frames/sample.jpg', file_get_contents(base_path('docs/references/09_cornice_gesu.jpg')));
+        $frame = ManifestTemplate::create(['title' => 'Campione', 'image_path' => 'frames/sample.jpg']);
+        foreach (['portrait' => [160, 200], 'logo' => [300, 80]] as $name => [$width, $height]) {
+            $image = imagecreatetruecolor($width, $height);
+            imagefill($image, 0, 0, imagecolorallocate($image, 220, 220, 220));
+            ob_start();
+            imagepng($image);
+            $bytes = ob_get_clean();
+            imagedestroy($image);
+            Storage::disk('local')->put('images/'.$name.'.png', $bytes);
+        }
+        CompanySettings::create(['id' => 1, 'data' => ['logo_path' => 'images/logo.png', 'trade_name' => 'Agenzia dimostrativa', 'phone' => '000 0000000']]);
+        $case = $this->completeCase();
+        $case->update(['manifest_template_id' => $frame->id, 'photo_path' => 'images/portrait.png']);
+        $pdf = app(PdfGenerator::class)->generate($case->fresh(), 'manifest');
+        $layout = $pdf->snapshot['layout'];
+        $area = $layout['area'];
+        $center = $area['x'] + $area['w'] / 2;
+        $topGap = $layout['content_y'] - $area['y'];
+        $bottomGap = $area['y'] + $area['h'] - $layout['content_y'] - $layout['content_height'];
+        $this->assertEqualsWithDelta($topGap, $bottomGap, 0.001);
+        $this->assertEqualsWithDelta(0.8, $layout['photo']['width'] / $layout['photo']['height'], 0.001);
+        $this->assertEqualsWithDelta(3.75, $layout['logo']['width'] / $layout['logo']['height'], 0.001);
+        foreach (['photo', 'logo'] as $image) {
+            $this->assertEqualsWithDelta($center, $layout[$image]['x'] + $layout[$image]['width'] / 2, 0.001);
+        }
+        $previousBottom = $layout['photo']['y'] + $layout['photo']['height'];
+        foreach ($layout['lines'] as $line) {
+            $this->assertEqualsWithDelta($center, $line['x'] + $line['width'] / 2, 0.001);
+            $this->assertGreaterThanOrEqual($previousBottom, $line['y']);
+            $this->assertNotSame('14:30', trim($line['text']));
+            $previousBottom = $line['y'] + $line['size'] * 1.5;
+        }
+        $this->assertGreaterThanOrEqual($previousBottom, $layout['logo']['y']);
+        $text = implode(' ', array_column($layout['lines'], 'text'));
+        $this->assertStringContainsString('14:00.', $text);
+        $this->assertStringNotContainsString('14:00 .', $text);
+        $this->assertLessThanOrEqual($area['y'] + $area['h'], $layout['logo']['y'] + $layout['logo']['height']);
+        $this->artifact('manifest-photo-logo', Storage::disk('local')->get($pdf->file_path));
     }
 
     private function artifact(string $name, string $bytes): void
