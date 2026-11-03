@@ -28,6 +28,7 @@ return [
         'Trasporto' => [
             'competent_city' => 'Comune competente', 'transport_origin' => 'Luogo di partenza',
             'transport_destination' => 'Destinazione trasporto', 'transport_route' => 'Percorso',
+            // Campo storico conservato per le migrazioni originarie; escluso dal form e dai nuovi PDF.
             'transport_at' => 'Data e ora trasporto', 'authorization_number' => 'Estremi autorizzazione',
         ],
         'Cremazione' => [

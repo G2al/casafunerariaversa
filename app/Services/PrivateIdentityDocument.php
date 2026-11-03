@@ -7,9 +7,9 @@ use Illuminate\Validation\ValidationException;
 
 class PrivateIdentityDocument
 {
-    public function validate(string $path): void
+    public function validate(string $path, string $directory = 'identity-documents'): void
     {
-        if (! str_starts_with($path, 'identity-documents/') || str_contains($path, '..') || str_contains($path, '\\') || ! Storage::disk('local')->exists($path)) {
+        if (! str_starts_with($path, $directory.'/') || str_contains($path, '..') || str_contains($path, '\\') || ! Storage::disk('local')->exists($path)) {
             throw ValidationException::withMessages(['identity_document' => 'Documento mancante o percorso non valido.']);
         }
         $this->validateBytes(Storage::disk('local')->get($path), pathinfo($path, PATHINFO_EXTENSION));

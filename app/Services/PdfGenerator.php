@@ -17,25 +17,37 @@ class PdfGenerator
     public function render(FuneralCase $case, string $kind): array
     {
         Gate::authorize('view', $case);
-        abort_unless(in_array($kind, ['document', 'manifest'], true), 404);
-        $data = app(DocumentData::class)->assemble($case, $kind);
-        if ($kind === 'manifest') {
+        abort_unless(in_array($kind, ['document', 'manifest', 'prelapide'], true), 404);
+        $customManifest = $kind === 'manifest' && $case->manifest_layout;
+        $data = $customManifest ? app(ManifestEditor::class)->pdfData($case) : app(DocumentData::class)->assemble($case, $kind);
+        if ($kind === 'manifest' && ! $customManifest) {
             $data['layout'] = app(ManifestLayout::class)->fit($data);
         }
-        $view = $kind === 'manifest' ? 'pdf.manifest' : 'pdf.'.$case->type->value;
+        $view = match ($kind) {
+            'manifest' => $customManifest ? 'pdf.manifest-editor' : 'pdf.manifest', 'prelapide' => 'pdf.prelapide', default => 'pdf.'.$case->type->value
+        };
+        $expectedPages = $kind === 'document' && $case->transport_enabled ? 4 : 1;
         $cremationRequest = $kind === 'document';
-        foreach ($cremationRequest ? [9.2, 8.8, 8.4, 8.0, 7.6, 7.2] : [null] as $fontSize) {
+        $fontSizes = match ($kind) {
+            'document' => [9.2, 8.8, 8.4, 8.0, 7.6, 7.2],
+            'prelapide' => [44, 36, 28, 22, 18, 14, 10],
+            default => [null],
+        };
+        foreach ($fontSizes as $fontSize) {
             if ($cremationRequest) {
                 $data['request']['font_size'] = $fontSize;
             }
-            $pdf = Pdf::loadView($view, ['data' => $data])->setPaper('a4', $kind === 'manifest' ? 'landscape' : 'portrait')
+            if ($kind === 'prelapide') {
+                $data['font_size'] = $fontSize;
+            }
+            $pdf = Pdf::loadView($view, ['data' => $data])->setPaper('a4', in_array($kind, ['manifest', 'prelapide'], true) ? 'landscape' : 'portrait')
                 ->setOptions(['defaultFont' => $cremationRequest ? 'DejaVu Sans' : 'DejaVu Serif', 'isRemoteEnabled' => false, 'isPhpEnabled' => false, 'isJavascriptEnabled' => false]);
             $bytes = $pdf->output();
-            if (! $cremationRequest || $pdf->getDomPDF()->getCanvas()->get_page_count() === 4) {
+            if ($kind === 'manifest' || $pdf->getDomPDF()->getCanvas()->get_page_count() === $expectedPages) {
                 return ['bytes' => $bytes, 'snapshot' => $data];
             }
         }
-        throw ValidationException::withMessages(['document' => 'I contenuti superano lo spazio delle quattro pagine. Riduci le note o verifica la lunghezza dei dati aziendali e delle abilitazioni del personale. Nessun testo è stato tagliato.']);
+        throw ValidationException::withMessages(['document' => 'I contenuti superano lo spazio disponibile del documento. Riduci le note o verifica la lunghezza dei dati aziendali e delle abilitazioni del personale. Nessun testo è stato tagliato.']);
     }
 
     public function generate(FuneralCase $case, string $kind): FuneralDocument

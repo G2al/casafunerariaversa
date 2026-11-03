@@ -48,7 +48,9 @@ class DemoFuneralCaseSeeder extends Seeder
             foreach ($cases as $case) {
                 $this->command?->info($case->code.' — '.$case->full_name.' — '.$case->type->getLabel());
             }
-            $this->command?->line('Due pratiche con dati inventati ma plausibili. Completa documenti di identità, foto, direttore tecnico, operatore incaricato e personale.');
+            $this->command?->line('Due pratiche con dati inventati e flussi aggiornati. Trasporto attivo, distanza iniziale 100 km; traslazione precedente attiva solo nella cremazione.');
+            $this->command?->line('Da inserire manualmente: documento di identità, foto, direttore tecnico e personale, certificato di morte e modello ISTAT.');
+            $this->command?->line('Puoi provare Documento, Manifesto e Prelapide. Impostando Trasporto = No, Documento genera la sola delega. Le pratiche già create sono conservate senza sovrascriverle.');
         } finally {
             $previousUser ? Auth::setUser($previousUser) : Auth::guard()->forgetUser();
         }
@@ -61,17 +63,20 @@ class DemoFuneralCaseSeeder extends Seeder
         $prior = $today->copy()->subDay();
         $death = $today->copy()->subDays($female ? 2 : 3);
         $at = fn (int $hour, int $minute = 0) => $today->copy()->setTime($hour + ($female ? 2 : 0), $minute);
-        $year = $today->year;
         $contact = $female ? 'Elisa Romano' : 'Lorenzo Rinaldi';
         $church = $female ? 'Parrocchia di Santa Lucia' : 'Parrocchia di San Michele';
         $crematorium = $female ? 'Centro crematorio Santa Lucia' : 'Centro crematorio San Lorenzo';
-        $destinationCity = $female ? 'Caserta' : 'Castel Volturno';
+        $destinationCity = $female ? 'Carinaro' : 'Castel Volturno';
+        $cemetery = $female ? 'Cimitero comunale di Carinaro' : 'Cimitero comunale di Aversa';
         $vehicle = $this->vehicle();
         $venue = 'Casa funeraria Aversa';
         $venueAddress = 'Via dei Platani 31, Aversa';
 
         return [
-            'operator_id' => $ownerId, 'type' => $type, 'status' => 'draft',
+            'operator_id' => $ownerId, 'type' => $type, 'status' => 'draft', 'transport_enabled' => true, 'prior_transfer_enabled' => ! $female,
+            'photo_path' => null, 'identity_document_type' => null, 'identity_front_path' => null, 'identity_back_path' => null,
+            'death_certificate_path' => null, 'istat_path' => null,
+            'technical_director_id' => null, 'staff_member_id' => null,
             'registered_at' => $death->copy()->setTime(15, 30),
             'first_name' => $female ? 'Teresa' : 'Antonio', 'last_name' => $female ? 'Moretti' : 'Rinaldi',
             'sex' => $female ? 'female' : 'male', 'birth_place' => $female ? 'Caserta' : 'Aversa',
@@ -97,20 +102,16 @@ class DemoFuneralCaseSeeder extends Seeder
             'viewing_starts_at' => $prior->copy()->setTime(8, 0), 'viewing_ends_at' => $at(9),
             'church' => $church, 'ceremony_city' => 'Aversa', 'ceremony_at' => $at(10),
             'transfer_place' => $church, 'transfer_at' => $at(9, 30),
-            'cemetery' => 'Cimitero comunale di Aversa', 'burial_type' => 'entombment',
+            'cemetery' => $cemetery, 'burial_type' => 'entombment',
             'competent_city' => 'Aversa', 'transport_origin' => $venue,
-            'transport_destination' => $crematorium, 'transport_destination_city' => $destinationCity,
-            'transport_route' => 'Aversa → '.$church.' → '.$crematorium.', '.$destinationCity,
-            'transport_at' => $at(11), 'transport_scope' => 'other_city', 'transport_distance_km' => $female ? 28 : 34,
-            'authorization_number' => 'Prot. '.($female ? '4382' : '4381').'/'.$year.' del '.$prior->format('d/m/Y'),
-            'crematorium' => $crematorium,
-            'ashes_destination' => 'Urna nel loculo di famiglia presso il Cimitero comunale di Aversa',
-            'vehicle_id' => $vehicle->id, 'prior_transfer_vehicle_id' => $vehicle->id,
-            'prior_transfer_destination' => $venue, 'prior_transfer_date' => $prior,
-            'certifying_doctor' => $female ? 'Dott.ssa Serena Vitale' : 'Dott. Paolo Gentile',
-            'transport_request_note' => 'Rientro delle ceneri ad Aversa e consegna al familiare incaricato.',
-            'transport_attachment_extra_1' => 'Autorizzazione alla cremazione',
-            'transport_attachment_extra_2' => 'Dichiarazione del familiare per la destinazione delle ceneri',
+            'transport_destination' => $female ? $cemetery : $crematorium, 'transport_destination_city' => $destinationCity,
+            'transport_route' => 'Aversa → '.$church.' → '.($female ? $cemetery : $crematorium.', '.$destinationCity),
+            'transport_at' => $at(11), 'transport_scope' => 'other_city', 'transport_distance_km' => 100,
+            'crematorium' => $female ? null : $crematorium,
+            'ashes_destination' => $female ? null : 'Urna nel loculo di famiglia presso il Cimitero comunale di Aversa',
+            'vehicle_id' => $vehicle->id, 'prior_transfer_vehicle_id' => $female ? null : $vehicle->id,
+            'prior_transfer_destination' => $female ? null : $venue, 'prior_transfer_date' => $female ? null : $prior,
+            'certifying_doctor' => $female ? null : 'Dott. Paolo Gentile',
             'manifest_template_id' => $this->frame()->id,
             'manifest_options' => [
                 'intro' => $female ? 'È venuta a mancare all’affetto dei suoi cari la Signora' : 'È venuto a mancare all’affetto dei suoi cari il Signor',
@@ -128,12 +129,12 @@ class DemoFuneralCaseSeeder extends Seeder
                 'contact_birth_place' => $female ? 'Caserta' : 'Aversa',
                 'contact_birth_date' => $female ? '1982-11-14' : '1981-06-11',
                 'mandate_date' => $prior->toDateString(),
-                'transport_purpose' => ($female ? 'cremata' : 'cremato').' presso il '.$crematorium,
-                'ashes_custodian' => $contact, 'ashes_placement' => 'Cimitero comunale di Aversa, loculo di famiglia',
-                'ashes_city' => 'Aversa', 'ashes_address' => 'Via del Riposo 12',
+                'transport_purpose' => $female ? 'tumulata' : 'cremato presso il '.$crematorium,
+                'ashes_custodian' => $female ? null : $contact, 'ashes_placement' => $female ? null : 'Cimitero comunale di Aversa, loculo di famiglia',
+                'ashes_city' => $female ? null : 'Aversa', 'ashes_address' => $female ? null : 'Via del Riposo 12',
             ],
             'internal_notes' => $female
-                ? 'La figlia Elisa ritirerà le ceneri. Concordare telefonicamente il rientro e la consegna.'
+                ? 'Concordare con la figlia Elisa l’orario di arrivo al cimitero.'
                 : 'Avvisare il figlio Lorenzo prima della partenza. La famiglia richiede un rito raccolto.',
         ];
     }

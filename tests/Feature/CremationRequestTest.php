@@ -52,7 +52,7 @@ class CremationRequestTest extends TestCase
         }
         $this->assertStringStartsWith('data:image/png;base64,', $snapshot['logo']);
         $this->assertCount(4, $snapshot['request']['staff']);
-        $this->assertSame('cremation_packet_4_pages_v2', $snapshot['request']['template']);
+        $this->assertSame('cremation_packet_4_pages_v3', $snapshot['request']['template']);
         $this->assertSame('meno di 100 Km', $snapshot['request']['distance_description']);
         $bytes = Storage::disk('local')->get($document->file_path);
         $this->assertStringStartsWith('%PDF-', $bytes);
@@ -111,7 +111,7 @@ class CremationRequestTest extends TestCase
     {
         $case = FuneralCase::create(['type' => 'cremation']);
         $missing = app(DocumentData::class)->missing($case, 'document');
-        foreach (['Direttore tecnico attivo e abilitato', 'Ambito del trasporto', 'Distanza dichiarata in km', 'Protocollo autorizzazione / SCIA (Impostazioni agenzia)'] as $label) {
+        foreach (['Direttore tecnico attivo e abilitato', 'Ambito del trasporto', 'Protocollo autorizzazione / SCIA (Impostazioni agenzia)'] as $label) {
             $this->assertContains($label, $missing);
         }
         $case = $this->prepareRequest($case);
@@ -128,7 +128,7 @@ class CremationRequestTest extends TestCase
     public function test_distance_over_100_and_previous_transfer_are_printed_as_entered(): void
     {
         $case = $this->prepareRequest(FuneralCase::create(['type' => 'cremation']));
-        $case->update(['transport_distance_km' => 125.5, 'prior_transfer_destination' => 'Camera ardente', 'prior_transfer_date' => '2026-10-01', 'certifying_doctor' => 'Medico Esempio', 'prior_transfer_vehicle_id' => $case->vehicle_id]);
+        $case->update(['prior_transfer_enabled' => true, 'transport_distance_km' => 125.5, 'prior_transfer_destination' => 'Camera ardente', 'prior_transfer_date' => '2026-10-01', 'certifying_doctor' => 'Medico Esempio', 'prior_transfer_vehicle_id' => $case->vehicle_id]);
         $data = app(DocumentData::class)->assemble($case->fresh(), 'document');
         $this->assertSame('125,5 Km', $data['request']['distance_description']);
         $this->assertSame('Medico Esempio', $data['request']['prior_transfer']['doctor']);
@@ -221,7 +221,11 @@ class CremationRequestTest extends TestCase
         $migration = require database_path('migrations/2026_10_21_000100_add_cremation_request_fields.php');
         $migration->down();
         $member = FuneralStaffMember::create(['name' => 'Operatore preesistente']);
-        $case = FuneralCase::create(['type' => 'cremation', 'staff_member_id' => $member->id, 'first_name' => 'Pratica preesistente']);
+        $legacyId = DB::table('funeral_cases')->insertGetId([
+            'code' => 'LEGACY-001', 'created_by' => auth()->id(), 'operator_id' => auth()->id(),
+            'type' => 'cremation', 'staff_member_id' => $member->id, 'first_name' => 'Pratica preesistente', 'registered_at' => now(),
+        ]);
+        $case = FuneralCase::findOrFail($legacyId);
         // SQLite ricostruisce la tabella per aggiungere FK; rinvia la verifica
         // durante la transazione di test, mantenendo attivi tutti i vincoli.
         DB::statement('PRAGMA defer_foreign_keys = ON');

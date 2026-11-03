@@ -5,6 +5,7 @@ namespace App\Filament\Support;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
+use App\Services\OptimizedUpload;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
@@ -15,6 +16,7 @@ class PrivateUpload
     public static function make(string $name, string $label, string $directory): FileUpload
     {
         return FileUpload::make($name)->label($label)->disk('local')->directory($directory)->visibility('private')
+            ->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, $directory))
             ->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->preventFilePathTampering()
             ->rules([fn () => function (string $attribute, mixed $value, \Closure $fail) {
                 if (! $value instanceof UploadedFile) {

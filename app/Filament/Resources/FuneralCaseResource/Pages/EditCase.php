@@ -19,6 +19,14 @@ class EditCase extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [...CaseActions::make(), FuneralCaseDeletionActions::single(), RestoreAction::make()];
+        return [...CaseActions::make(), FuneralCaseDeletionActions::single(), FuneralCaseDeletionActions::forceSingle(), RestoreAction::make()];
+    }
+
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        // I campi delle sezioni nascoste restano disponibili quando si cambia procedura.
+        $data['cremation_details'] = array_replace($this->getRecord()->cremation_details ?? [], $data['cremation_details'] ?? []);
+
+        return $data;
     }
 }

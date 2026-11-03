@@ -63,6 +63,21 @@ class PrivateFilesController extends Controller
         ]);
     }
 
+    public function attachment(FuneralCase $case, string $kind)
+    {
+        Gate::authorize('view', $case);
+        $field = match ($kind) {
+            'death-certificate' => 'death_certificate_path', 'istat' => 'istat_path', default => abort(404)
+        };
+        $path = $case->$field;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+        app(PrivateIdentityDocument::class)->validate($path, 'case-documents');
+
+        return Storage::disk('local')->response($path, $case->code.'-'.$kind.'.'.pathinfo($path, PATHINFO_EXTENSION), [
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function logo()
     {
         $path = CompanySettings::current()['logo_path'] ?? null;

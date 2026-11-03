@@ -1,5 +1,5 @@
 <h2>Delega per l’espletamento del servizio<br>ed il trattamento dei dati personali</h2>
-@if($isStandard)
+@if($isStandard && $r['transport_enabled'])
 <p class="center strong section">Il trasporto della salma dal luogo del decesso alla casa funeraria<br>{{ $company['legal_name'] }}<br>sita in {{ $company['company_address'] }}, {{ $company['company_city'] }}</p>
 @else
 <p class="center strong section">{{ $company['legal_name'] }} con sede in {{ $company['company_city'] }}<br>{{ $company['company_address'] }}</p>

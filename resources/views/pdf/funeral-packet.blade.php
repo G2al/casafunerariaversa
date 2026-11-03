@@ -37,6 +37,7 @@ p { margin:0 0 4pt; } .center { text-align:center; } .strong { font-weight:bold;
     }
 @endphp
 <div class="brand"><img src="{{ $data['logo'] }}" alt="Casa Funeraria Aversa"></div>
+@if($r['transport_enabled'])
 <h1>Domanda di autorizzazione per trasporto di salma</h1>
 <p><strong>Al Sig. Sindaco del Comune di {{ $r['competent_city'] }}</strong></p>
 <p class="subject">OGGETTO: Richiesta di autorizzazione per trasporto salma<br>
@@ -46,21 +47,22 @@ p { margin:0 0 4pt; } .center { text-align:center; } .strong { font-weight:bold;
 cognome e nome del coniuge {{ $fill($d['spouse_name']) }}, residente a {{ $d['residence_city'] }}, {{ $d['residence_address'] }};<br>
 {{ $d['female'] ? 'deceduta' : 'deceduto' }} il {{ $d['death_date'] }} alle ore {{ $fill($d['death_time']) }} in {{ $d['death_place'] }}, indirizzo {{ $fill($d['death_address']) }}.</p>
 
+@if($r['prior_transfer_enabled'])
 <p class="section"><u>La salma è stata traslata presso {{ $fill($r['prior_transfer']['destination']) }}</u>, su richiesta dei familiari, vista la certificazione del Dott. {{ $fill($r['prior_transfer']['doctor']) }};<br>
 <u>la salma è stata traslata in data {{ $fill($r['prior_transfer']['date']) }}</u> dall’impresa funebre {{ $company['legal_name'] }} con auto funebre targato {{ $fill($r['prior_transfer']['vehicle_plate']) }},<br>
 <u>in ottemperanza a quanto statuito dall’allegato A, art. 2 comma 3 bis della L.R. 12 del 2001, modificata dalla L.R. 7 del 2013.</u></p>
+@endif
 
 <p class="section">Il sottoscritto <strong>{{ $director['name'] }}</strong>, nato il {{ $director['birth_date'] }} a {{ $director['birth_place'] }},<br>
 residente in {{ $director['residence_city'] }}, {{ $director['residence_address'] }}, in qualità di (1) <strong>DIRETTORE TECNICO</strong>,</p>
 <p class="center strong">CHIEDE</p>
 <p>ai sensi degli artt. 24 e 34 del D.P.R. 10 settembre 1990 n. 285, l’autorizzazione per il trasporto della salma di cui all’oggetto da questo Comune a quello di <strong>{{ $r['destination_city'] }}</strong>, distante {{ $r['distance_description'] }}, per essere @if($isStandard){{ $packet['transport_purpose'] }}@else{{ $d['female'] ? 'cremata' : 'cremato' }} presso {{ $r['crematorium'] }}@endif.</p>
 <p>Il trasporto funebre sarà effettuato il <strong>{{ $r['transport_date'] }}</strong> alle ore <strong>{{ $r['transport_time'] }}</strong> dall’impresa (2) «<strong>{{ $company['legal_name'] }}</strong>», con sede in {{ $company['company_city'] }}, {{ $company['company_address'] }}, in possesso dell’autorizzazione all’esercizio dell’attività funebre,<br>
-<strong>Autorizzazioni/SCIA Prot. n. {{ $company['company_authorization_protocol'] }} del {{ $r['company_authorization_date'] }}</strong>, rilasciata da {{ $company['company_authorization_issuer'] }}, a mezzo (3) autofunebre targato: <strong>{{ $r['vehicle']['plate'] }}</strong>,<br>
+<strong>Autorizzazioni/SCIA Prot. n. {{ $company['company_authorization_protocol'] }} del {{ $r['company_authorization_date'] }}</strong>, rilasciata da {{ $company['company_authorization_issuer'] }}, a mezzo (3) autofunebre targato: <strong>{{ $r['vehicle']['plate'] }}</strong>, con il seguente percorso: {{ $fill($r['route']) }},<br>
 utilizzando il seguente personale dipendente, tutti assunti con contratto di lavoro subordinato a tempo pieno:</p>
 @include('pdf.cremation-staff')
 
 <p class="declaration">Il sig. (4) <strong>{{ $r['assigned_operator']['name'] }}</strong>, operatore funebre incaricato del trasporto con mansione di necroforo, provvederà a eseguire quanto stabilito dall’art. 9 comma 1 della L.R. 12/2001, modificata dalla L.R. 7/2013 e da quanto disposto dal Regolamento Comunale di Polizia Mortuaria, in veste di incaricato di pubblico servizio ai sensi dell’art. 358 C.P.; in particolare provvederà a verificare l’identità del cadavere, che il feretro sia confezionato in modo corretto, che il carro funebre e il personale utilizzati siano quelli autorizzati; inoltre apporrà i sigilli di chiusura al feretro e redigerà l’apposito verbale.</p>
-<p>(5) {{ $fill($r['additional_note']) }}</p>
 <p class="strong section">Allega alla presente:</p>
 <p>- Autorizzazione di seppellimento rilasciata dall’Ufficiale di Stato Civile;<br>
 - Nulla osta del Sanitario della A.S.L.;<br>
@@ -73,11 +75,6 @@ utilizzando il seguente personale dipendente, tutti assunti con contratto di lav
 <li>attestazione di regolarità contributiva previdenziale e tributaria;</li>
 <li>attestazione del pieno rispetto delle norme sulla sicurezza e salute dei lavoratori.</li>
 </ol>
-<p style="margin-top:5pt">-(6) {{ $fill($r['additional_attachments'][0]) }};<br>-(7) {{ $fill($r['additional_attachments'][1]) }}.</p>
-@if($isStandard)
-<p>Dopo l’avvenuta cremazione le ceneri saranno affidate a <strong>{{ $packet['ashes']['custodian'] }}</strong>;<br>
-saranno deposte in {{ $packet['ashes']['placement'] }}, in {{ $packet['ashes']['city'] }}, sita in {{ $packet['ashes']['address'] }}.</p>
-@endif
 <div class="signature">{{ $isStandard ? 'IN FEDE' : 'IL RICHIEDENTE' }}<br><span class="write-line">&nbsp;</span></div>
 @foreach([2, 3, 4] as $page)
 <div class="packet-page {{ $page === 4 ? 'mandate' : '' }}">
@@ -85,4 +82,7 @@ saranno deposte in {{ $packet['ashes']['placement'] }}, in {{ $packet['ashes']['
     @include('pdf.cremation-page-'.$page)
 </div>
 @endforeach
+@else
+<div class="mandate">@include('pdf.cremation-page-4')</div>
+@endif
 </body></html>

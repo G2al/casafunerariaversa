@@ -24,12 +24,14 @@ class FuneralCase extends Model
 {
     use SoftDeletes;
 
+    protected $attributes = ['transport_enabled' => true, 'prior_transfer_enabled' => false, 'transport_distance_km' => 100];
+
     protected $guarded = ['id', 'code', 'created_by'];
 
     protected function casts(): array
     {
-        $casts = ['type' => CaseType::class, 'status' => CaseStatus::class, 'family_members' => 'array', 'manifest_options' => 'array', 'registered_at' => 'datetime', 'death_cause' => 'encrypted'];
-        $casts += ['prior_transfer_date' => 'date', 'transport_distance_km' => 'decimal:2', 'cremation_details' => 'array'];
+        $casts = ['type' => CaseType::class, 'status' => CaseStatus::class, 'family_members' => 'array', 'manifest_options' => 'array', 'manifest_layout' => 'array', 'registered_at' => 'datetime', 'death_cause' => 'encrypted'];
+        $casts += ['transport_enabled' => 'boolean', 'prior_transfer_enabled' => 'boolean', 'prior_transfer_date' => 'date', 'transport_distance_km' => 'decimal:2', 'cremation_details' => 'array'];
         foreach (config('funeral.sections') as $fields) {
             foreach (array_keys($fields) as $field) {
                 if (str_ends_with($field, '_date') || str_ends_with($field, '_at')) {
@@ -57,6 +59,7 @@ class FuneralCase extends Model
             $case->status ??= CaseStatus::Draft;
         });
         static::saving(function (self $case) {
+            $case->transport_distance_km = blank($case->transport_distance_km) ? 100 : $case->transport_distance_km;
             if ($case->exists && auth()->check()) {
                 if (! auth()->user()->isAdmin()) {
                     $case->operator_id = $case->getRawOriginal('operator_id');
@@ -82,10 +85,15 @@ class FuneralCase extends Model
             if ($case->isDirty('identity_document_type')) {
                 Validator::make(['identity_document_type' => $case->identity_document_type], ['identity_document_type' => ['nullable', new Enum(IdentityDocumentType::class)]])->validate();
             }
-            foreach (['identity_front_path', 'identity_back_path'] as $field) {
+            foreach (['identity_front_path', 'identity_back_path', 'death_certificate_path', 'istat_path'] as $field) {
                 if ($case->isDirty($field) && $case->$field) {
-                    app(PrivateIdentityDocument::class)->validate($case->$field);
+                    app(PrivateIdentityDocument::class)->validate($case->$field, in_array($field, ['death_certificate_path', 'istat_path'], true) ? 'case-documents' : 'identity-documents');
                 }
+            }
+        });
+        static::deleting(function (self $case) {
+            if (auth()->check()) {
+                Gate::authorize('delete', $case);
             }
         });
         foreach (['created', 'updated', 'deleted', 'restored'] as $event) {

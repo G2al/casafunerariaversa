@@ -6,6 +6,7 @@ use App\Enums\CaseStatus;
 use App\Enums\CaseType;
 use App\Filament\Resources\FuneralCaseResource\RelationManagers\DocumentsRelationManager;
 use App\Filament\Support\CaseActions;
+use App\Filament\Support\CaseAttachmentForm;
 use App\Filament\Support\FuneralCaseDeletionActions;
 use App\Filament\Support\FuneralPacketForm;
 use App\Filament\Support\IdentityDocumentForm;
@@ -76,11 +77,14 @@ class FuneralCaseResource extends Resource
         foreach (config('funeral.sections') as $section => $fields) {
             $components = [];
             foreach ($fields as $field => $label) {
+                if ($field === 'authorization_number') {
+                    continue;
+                }
                 $input = match (true) {
                     $field === 'sex' => Select::make($field)->options(['male' => 'Maschio', 'female' => 'Femmina']),
                     $field === 'burial_type' => Select::make($field)->options(['burial' => 'Inumazione', 'entombment' => 'Tumulazione', 'other' => 'Altro']),
-                    str_ends_with($field, '_date') => DatePicker::make($field)->native(false)->displayFormat('d/m/Y')->maxDate(today()),
-                    str_ends_with($field, '_at') => DateTimePicker::make($field)->native(false)->displayFormat('d/m/Y H:i')->seconds(false),
+                    str_ends_with($field, '_date') => DatePicker::make($field)->native(true)->displayFormat('d/m/Y')->maxDate(today()),
+                    str_ends_with($field, '_at') => DateTimePicker::make($field)->native(true)->displayFormat('d/m/Y H:i')->seconds(false),
                     $field === 'death_time' => TimePicker::make($field)->seconds(false),
                     $field === 'death_cause' => Textarea::make($field)->maxLength(5000)->helperText('Informazione riservata. Esclusa da manifesti, PDF e CSV.'),
                     default => TextInput::make($field)->maxLength(255),
@@ -105,6 +109,10 @@ class FuneralCaseResource extends Resource
             if ($section === 'Defunto') {
                 $components[] = PrivateUpload::make('photo_path', 'Fotografia del defunto (facoltativa)', 'photos');
             }
+            if ($section === 'Camera ardente e rito') {
+                $components[] = TextInput::make('transport_distance_km')->label('Distanza dichiarata (km)')->numeric()->minValue(0)->maxValue(999999.99)->default(100)->helperText('Valore iniziale 100 km, modificabile. Vuoto: viene salvato 100.');
+                $components[] = FuneralPacketForm::priorTransfer();
+            }
             if ($section === 'Familiare referente') {
                 $components[] = Repeater::make('family_members')->label('Persone da nominare nel manifesto')->schema([
                     TextInput::make('relationship')->label('Parentela')->maxLength(100), TextInput::make('name')->label('Nome e cognome')->maxLength(255),
@@ -116,14 +124,21 @@ class FuneralCaseResource extends Resource
                 $components[] = Select::make('transportStaff')->label('Personale da riportare nel documento')->relationship('transportStaff', 'name', fn (Builder $query) => $query->where('is_active', true))->multiple()->searchable()->preload()->maxItems(16)->columnSpanFull()->helperText('Seleziona i nominativi da stampare con qualifica ed estremi di abilitazione, includendo l’operatore incaricato del trasporto.');
             }
             $tab = Tab::make($section)->schema([Section::make($section)->schema($components)->columns(['default' => 1, 'md' => 2])]);
+            if ($section === 'Trasporto') {
+                $tab->visible(fn (Get $get) => (bool) $get('transport_enabled'));
+            }
+            if ($section === 'Cremazione') {
+                $tab->visible(fn (Get $get) => in_array($get('type'), ['cremation', CaseType::Cremation], true));
+            }
             $tabs[] = $tab;
             if ($section === 'Defunto') {
-                $tabs[] = Tab::make('Documento del defunto')->schema([IdentityDocumentForm::section()]);
+                $tabs[] = Tab::make('Documento del defunto')->schema([IdentityDocumentForm::section(), CaseAttachmentForm::section()]);
             }
         }
         $tabs[] = Tab::make('Documentazione')->schema(FuneralPacketForm::sections());
         $tabs[] = Tab::make('Manifesto')->schema([
             Section::make('Cornice e contenuti')->description('Salva la pratica prima di aprire l’anteprima. L’anteprima è il PDF effettivo.')->schema([
+                Placeholder::make('custom_manifest_notice')->label('Manifesto personalizzato')->content('È attiva una composizione salvata nell’editor live. Per aggiornare testi, foto o disposizione apri Modifica manifesto live e usa Aggiorna dalla pratica.')->visible(fn (?FuneralCase $record) => filled($record?->manifest_layout))->columnSpanFull(),
                 Select::make('manifest_template_id')->label('Cornice')->options(fn () => ManifestTemplate::where('is_active', true)->orderBy('sort_order')->pluck('title', 'id'))->searchable()->live()
                     ->helperText('Se il catalogo è vuoto, l’amministratore può caricare le immagini in Cornici manifesti.'),
                 View::make('filament.forms.template-gallery')->columnSpanFull(),
@@ -142,6 +157,7 @@ class FuneralCaseResource extends Resource
         return $schema->components([
             Section::make('Pratica')->schema([
                 Select::make('type')->label('Procedura')->options(CaseType::class)->required()->live()->helperText('Cambiando procedura i dati comuni restano salvati. I PDF precedenti restano nello storico con la vecchia tipologia.'),
+                Toggle::make('transport_enabled')->label('Trasporto effettuato dalla nostra impresa')->default(true)->live()->helperText('No: il documento comprende solo la delega al servizio, senza i tre moduli di trasporto.'),
                 Select::make('status')->label('Stato')->options(CaseStatus::class)->default('draft')->required(),
                 DateTimePicker::make('registered_at')->label('Presa in carico')->default(now())->required()->displayFormat('d/m/Y H:i')->seconds(false),
                 Select::make('operator_id')->label('Operatore proprietario')->options(fn () => auth()->user()?->isAdmin() ? User::where('is_active', true)->pluck('name', 'id') : [])->searchable()->visible(fn () => auth()->user()?->isAdmin()),
@@ -199,10 +215,10 @@ class FuneralCaseResource extends Resource
             ...static::dateFilters(), TrashedFilter::make()->visible(fn () => auth()->user()?->isAdmin()),
         ])->recordActions([
             ViewAction::make(), EditAction::make(), ActionGroup::make(CaseActions::make())->label('PDF'),
-            FuneralCaseDeletionActions::single(), RestoreAction::make(),
+            FuneralCaseDeletionActions::single(), FuneralCaseDeletionActions::forceSingle(), RestoreAction::make(),
         ])->toolbarActions([
             BulkActionGroup::make([
-                FuneralCaseDeletionActions::bulk(),
+                FuneralCaseDeletionActions::bulk(), FuneralCaseDeletionActions::forceBulk(),
                 RestoreBulkAction::make()->label('Ripristina selezionate')->authorizeIndividualRecords('restore'),
             ])->label('Azioni sui selezionati'),
         ])->headerActions([
@@ -217,6 +233,6 @@ class FuneralCaseResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => FuneralCaseResource\Pages\ListCases::route('/'), 'create' => FuneralCaseResource\Pages\CreateCase::route('/create'), 'view' => FuneralCaseResource\Pages\ViewCase::route('/{record}'), 'edit' => FuneralCaseResource\Pages\EditCase::route('/{record}/edit')];
+        return ['index' => FuneralCaseResource\Pages\ListCases::route('/'), 'create' => FuneralCaseResource\Pages\CreateCase::route('/create'), 'manifest-editor' => FuneralCaseResource\Pages\EditManifest::route('/{record}/manifest-editor'), 'view' => FuneralCaseResource\Pages\ViewCase::route('/{record}'), 'edit' => FuneralCaseResource\Pages\EditCase::route('/{record}/edit')];
     }
 }

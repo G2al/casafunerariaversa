@@ -53,12 +53,20 @@ class DemoFuneralCaseSeederTest extends TestCase
         foreach ($cases as $case) {
             $this->assertSame($admin->id, $case->operator_id);
             $this->assertSame($admin->id, $case->created_by);
-            foreach (['photo_path', 'identity_document_type', 'identity_front_path', 'identity_back_path', 'technical_director_id', 'staff_member_id'] as $field) {
+            foreach (['photo_path', 'identity_document_type', 'identity_front_path', 'identity_back_path', 'death_certificate_path', 'istat_path', 'technical_director_id', 'staff_member_id', 'authorization_number', 'transport_request_note', 'transport_attachment_extra_1', 'transport_attachment_extra_2'] as $field) {
                 $this->assertNull($case->$field);
             }
             $this->assertCount(0, $case->transportStaff);
             foreach (config('funeral.sections') as $fields) {
                 foreach (array_keys($fields) as $field) {
+                    if ($field === 'authorization_number') {
+                        continue;
+                    }
+                    if ($case->type->value === 'standard_transport' && in_array($field, ['crematorium', 'ashes_destination'], true)) {
+                        $this->assertNull($case->$field);
+
+                        continue;
+                    }
                     $this->assertNotEmpty($case->$field, 'Campo non compilato: '.$field);
                 }
             }
@@ -75,7 +83,15 @@ class DemoFuneralCaseSeederTest extends TestCase
                 $this->assertTrue(str_contains($label, 'documento') || str_contains($label, 'rilascio') || str_contains($label, 'Direttore tecnico') || str_contains($label, 'Operatore incaricato') || str_contains($label, 'Personale da riportare'), $label);
             }
             $this->assertSame([], app(DocumentData::class)->missing($case, 'manifest'));
-            $this->assertTrue($case->death_date->lte($case->prior_transfer_date));
+            $this->assertTrue($case->transport_enabled);
+            $this->assertSame('100.00', $case->transport_distance_km);
+            $this->assertSame($case->type->value === 'cremation', $case->prior_transfer_enabled);
+            if ($case->prior_transfer_enabled) {
+                $this->assertTrue($case->death_date->lte($case->prior_transfer_date));
+            } else {
+                $this->assertNull($case->prior_transfer_date);
+                $this->assertNull($case->prior_transfer_destination);
+            }
             $this->assertTrue($case->viewing_starts_at->lt($case->viewing_ends_at));
             $this->assertTrue($case->viewing_ends_at->lt($case->transfer_at));
             $this->assertTrue($case->transfer_at->lt($case->ceremony_at));
@@ -93,6 +109,21 @@ class DemoFuneralCaseSeederTest extends TestCase
             $rendered = app(PdfGenerator::class)->render($case->fresh(), 'document');
             $this->assertSame(4, preg_match_all('~/Type\s*/Page\b~', $rendered['bytes']));
             $this->assertStringNotContainsString('DEMO', json_encode($rendered['snapshot']));
+            $html = view('pdf.'.$case->type->value, ['data' => $rendered['snapshot']])->render();
+            $this->assertStringContainsString($case->transport_route, $html);
+            $this->assertStringContainsString($case->cemetery, $html);
+            if ($case->type->value === 'standard_transport') {
+                $this->assertStringNotContainsString('impianto di cremazione', $html);
+                $this->assertStringNotContainsString('ceneri', $html);
+                $this->assertStringNotContainsString('La salma è stata traslata presso', $html);
+            }
+            foreach (['manifest', 'prelapide'] as $kind) {
+                $other = app(PdfGenerator::class)->render($case->fresh(), $kind);
+                $this->assertSame(1, preg_match_all('~/Type\s*/Page\b~', $other['bytes']));
+            }
+            $case->update(['transport_enabled' => false]);
+            $mandate = app(PdfGenerator::class)->render($case->fresh(), 'document');
+            $this->assertSame(1, preg_match_all('~/Type\s*/Page\b~', $mandate['bytes']));
         }
     }
 
@@ -107,7 +138,10 @@ class DemoFuneralCaseSeederTest extends TestCase
         $case = FuneralCase::where('type', 'cremation')->sole();
         $this->actingAs($admin);
         $member = FuneralStaffMember::create(['name' => 'Scelta manuale']);
-        Livewire::test(EditCase::class, ['record' => $case->id])->fillForm(['first_name' => 'Modifica manuale'])->call('save')->assertHasNoFormErrors();
+        Livewire::test(EditCase::class, ['record' => $case->id])->fillForm([
+            'first_name' => 'Modifica manuale', 'transport_enabled' => false,
+            'prior_transfer_enabled' => false, 'transport_distance_km' => 77,
+        ])->call('save')->assertHasNoFormErrors();
         $case = $case->fresh();
         // Il collegamento del seeder è nell'audit: resta stabile anche se si sostituisce il JSON.
         $details = $case->cremation_details;
@@ -119,6 +153,9 @@ class DemoFuneralCaseSeederTest extends TestCase
         $this->assertSame(1, FuneralVehicle::count());
         $this->assertSame(1, ManifestTemplate::count());
         $this->assertSame('Modifica manuale', $case->fresh()->first_name);
+        $this->assertFalse($case->fresh()->transport_enabled);
+        $this->assertFalse($case->fresh()->prior_transfer_enabled);
+        $this->assertSame('77.00', $case->fresh()->transport_distance_km);
         $this->assertSame([$member->id], $case->fresh()->transportStaff->modelKeys());
         $this->assertSame('Società già configurata', CompanySettings::current()['legal_name']);
         $this->assertSame('PROTOCOLLO-ESISTENTE', CompanySettings::current()['company_authorization_protocol']);

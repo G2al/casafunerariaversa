@@ -2,6 +2,7 @@
 
 namespace App\Filament\Support;
 
+use App\Filament\Resources\FuneralCaseResource;
 use App\Models\FuneralCase;
 use App\Services\PdfGenerator;
 use Filament\Actions\Action;
@@ -14,8 +15,10 @@ class CaseActions
 {
     public static function make(): array
     {
-        $actions = [];
-        foreach (['document' => 'Documento', 'manifest' => 'Manifesto'] as $kind => $label) {
+        $actions = [Action::make('edit_manifest')->label('Modifica manifesto live')->icon('heroicon-o-paint-brush')
+            ->visible(fn (FuneralCase $record) => Gate::allows('update', $record) && ! $record->trashed())
+            ->url(fn (FuneralCase $record) => FuneralCaseResource::getUrl('manifest-editor', ['record' => $record]))];
+        foreach (['document' => 'Documento', 'manifest' => 'Manifesto', 'prelapide' => 'Prelapide'] as $kind => $label) {
             $actions[] = Action::make('preview_'.$kind)->label('Anteprima '.$label)->icon('heroicon-o-eye')
                 ->url(fn (FuneralCase $record) => route('private.preview', [$record, $kind]))->openUrlInNewTab();
             $actions[] = Action::make('generate_'.$kind)->label('Genera '.$label)->icon('heroicon-o-document-arrow-down')

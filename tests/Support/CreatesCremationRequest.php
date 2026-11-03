@@ -43,11 +43,11 @@ trait CreatesCremationRequest
             'transport_at' => '2026-10-02 10:00', 'crematorium' => 'Crematorio esempio',
             'transport_distance_km' => 65, 'transport_scope' => 'other_city',
             'technical_director_id' => $director->id, 'staff_member_id' => $staff->last()->id, 'vehicle_id' => $vehicle->id,
-            'authorization_number' => 'AUT-TEST-001',
+            'authorization_number' => 'AUT-TEST-001', 'cemetery' => 'Cimitero di prova',
             'contact_first_name' => 'Familiare', 'contact_last_name' => 'Esempio', 'contact_relationship' => 'Figlia',
             'contact_city' => 'Comune residenza', 'contact_address' => 'Via Familiare 18', 'contact_phone' => '0000000000', 'contact_email' => 'family@example.test',
             'cremation_details' => [
-                'transport_purpose' => 'cremato presso il crematorio di prova',
+                'transport_purpose' => 'tumulato',
                 'ashes_custodian' => 'Familiare Esempio', 'ashes_placement' => 'Cimitero di prova',
                 'ashes_city' => 'Comune destinazione ceneri', 'ashes_address' => 'Via Ceneri 15',
                 'identification_method' => 'document', 'identity_document_type' => 'Carta identità', 'identity_document_number' => 'DOC-TEST-123',

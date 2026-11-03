@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CaseType;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use Illuminate\Validation\ValidationException;
@@ -10,12 +11,17 @@ class DocumentData
 {
     public function missing(FuneralCase $case, string $kind): array
     {
+        if ($kind === 'document' && ! $case->transport_enabled) {
+            return [];
+        }
         $fields = ['first_name' => 'Nome', 'last_name' => 'Cognome', 'death_date' => 'Data del decesso'];
         if ($kind === 'manifest') {
             $fields += ['sex' => 'Sesso', 'manifest_template_id' => 'Cornice'];
         } else {
             $fields += ['birth_date' => 'Data di nascita', 'birth_place' => 'Luogo di nascita', 'death_place' => 'Luogo del decesso', 'transport_at' => 'Data e ora trasporto', 'transport_destination' => 'Destinazione trasporto'];
-            $fields['crematorium'] = 'Crematorio';
+            if ($case->type === CaseType::Cremation) {
+                $fields['crematorium'] = 'Crematorio';
+            }
         }
         $missing = array_values(array_filter($fields, fn ($label, $field) => blank($case->$field), ARRAY_FILTER_USE_BOTH));
         if ($kind === 'document') {
@@ -27,6 +33,9 @@ class DocumentData
 
     public function assemble(FuneralCase $case, string $kind): array
     {
+        if ($kind === 'prelapide') {
+            return ['code' => $case->code, 'first_name' => $case->first_name, 'last_name' => $case->last_name, 'birth_date' => $case->birth_date?->format('d/m/Y'), 'death_date' => $case->death_date?->format('d/m/Y')];
+        }
         $missing = $kind === 'document' ? [] : $this->missing($case, $kind);
         if ($kind !== 'document' && $missing) {
             throw ValidationException::withMessages(['document' => 'Dati mancanti: '.implode(', ', $missing).'. Salva la pratica dopo averli compilati.']);

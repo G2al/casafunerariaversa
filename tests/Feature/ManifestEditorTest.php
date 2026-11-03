@@ -1,0 +1,150 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Enums\UserRole;
+use App\Filament\Resources\FuneralCaseResource;
+use App\Models\AuditEvent;
+use App\Models\FuneralCase;
+use App\Models\ManifestTemplate;
+use App\Models\User;
+use App\Services\PdfGenerator;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Tests\TestCase;
+
+class ManifestEditorTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private FuneralCase $case;
+
+    private static ?string $image = null;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Storage::fake('local');
+        $this->actingAs(User::factory()->create());
+        Storage::disk('local')->put('frames/sample.jpg', file_get_contents(base_path('docs/references/09_cornice_gesu.jpg')));
+        $frame = ManifestTemplate::create(['title' => 'Cornice', 'image_path' => 'frames/sample.jpg']);
+        $this->case = FuneralCase::create(['type' => 'cremation', 'first_name' => 'Mario', 'last_name' => 'Rossi', 'sex' => 'male', 'birth_date' => '1950-01-01', 'death_date' => '2026-10-01', 'manifest_template_id' => $frame->id, 'internal_notes' => 'Segreto interno', 'death_cause' => 'Dato sanitario']);
+    }
+
+    private function payload(): array
+    {
+        $data = $this->getJson(route('private.manifest-editor.show', $this->case))->assertOk()->json();
+        if (! self::$image) {
+            $image = imagecreatetruecolor(3508, 2480);
+            imagefill($image, 0, 0, imagecolorallocate($image, 255, 255, 255));
+            ob_start();
+            imagejpeg($image, null, 97);
+            $bytes = ob_get_clean();
+            imagedestroy($image);
+            self::$image = 'data:image/jpeg;base64,'.base64_encode($bytes);
+        }
+
+        return ['revision' => $data['revision'], 'source' => $data['source'], 'scene' => $data['scene'], 'image' => self::$image];
+    }
+
+    public function test_bootstrap_page_and_fonts_are_private(): void
+    {
+        $this->get(FuneralCaseResource::getUrl('manifest-editor', ['record' => $this->case]))->assertOk()->assertSee('Editor manifesto')->assertSee('data-manifest-editor', false);
+        $data = $this->getJson(route('private.manifest-editor.show', $this->case))->assertOk()->assertHeader('Cache-Control', 'no-store, private')->json();
+        $this->assertSame(1, $data['scene']['version']);
+        $this->assertContains('name', array_column($data['scene']['elements'], 'id'));
+        $this->assertStringNotContainsString('Segreto interno', json_encode($data));
+        $this->assertStringNotContainsString('Dato sanitario', json_encode($data));
+        $this->get(route('private.manifest-editor.font', 'serif'))->assertOk();
+        $this->get(route('private.manifest-editor.font', 'unknown'))->assertNotFound();
+        $payload = $this->payload();
+        $this->actingAs(User::factory()->create());
+        $this->getJson(route('private.manifest-editor.show', $this->case))->assertForbidden();
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertForbidden();
+        $this->deleteJson(route('private.manifest-editor.reset', $this->case), ['revision' => null])->assertForbidden();
+        $this->get(FuneralCaseResource::getUrl('manifest-editor', ['record' => $this->case]))->assertNotFound();
+    }
+
+    public function test_save_reload_pdf_and_reset_preserve_archived_versions(): void
+    {
+        $payload = $this->payload();
+        $payload['scene']['elements'][0]['text'] = 'Testo personalizzato';
+        $response = $this->postJson(route('private.manifest-editor.save', $this->case), $payload + ['generate' => true])->assertOk();
+        $saved = $this->case->fresh()->manifest_layout;
+        $this->assertSame($response['revision'], $saved['revision']);
+        Storage::disk('local')->assertExists($saved['image_path']);
+        $this->getJson(route('private.manifest-editor.show', $this->case))->assertJsonPath('scene.elements.0.text', 'Testo personalizzato');
+        $document = $this->case->documents()->sole();
+        $pdf = Storage::disk('local')->get($document->file_path);
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        $this->assertSame(1, preg_match_all('~/Type\s*/Page\b~', $pdf));
+        $this->assertSame($saved['revision'], $document->snapshot['editor_revision']);
+        $this->get($response['documentUrl'])->assertOk();
+        $this->get(route('private.preview', [$this->case, 'manifest']))->assertOk();
+        $this->deleteJson(route('private.manifest-editor.reset', $this->case), ['revision' => $saved['revision']])->assertOk();
+        $this->assertNull($this->case->fresh()->manifest_layout);
+        $this->assertSame($pdf, Storage::disk('local')->get($document->file_path));
+        $this->assertArrayHasKey('layout', app(PdfGenerator::class)->render($this->case->fresh(), 'manifest')['snapshot']);
+    }
+
+    public function test_stale_revision_and_case_changes_cannot_silently_overwrite(): void
+    {
+        $payload = $this->payload();
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertConflict();
+        $current = $this->payload();
+        $this->case->refresh()->update(['first_name' => 'Nome cambiato']);
+        $this->postJson(route('private.manifest-editor.save', $this->case), $current)->assertConflict();
+        $this->getJson(route('private.manifest-editor.show', $this->case))->assertJsonPath('stale', true);
+        $this->deleteJson(route('private.manifest-editor.reset', $this->case), ['revision' => null])->assertConflict();
+        $this->assertCount(1, Storage::disk('local')->files('manifest-editor'));
+    }
+
+    public function test_invalid_assets_geometry_and_images_are_rejected(): void
+    {
+        $payload = $this->payload();
+        $bad = $payload;
+        $bad['scene']['elements'][0]['src'] = 'https://example.com/arbitrary.svg';
+        $this->postJson(route('private.manifest-editor.save', $this->case), $bad)->assertUnprocessable();
+        $bad = $payload;
+        $bad['scene']['elements'][0]['x'] = 840;
+        $this->postJson(route('private.manifest-editor.save', $this->case), $bad)->assertUnprocessable();
+        $bad = $payload;
+        $bad['image'] = 'data:image/jpeg;base64,'.base64_encode('not an image');
+        $this->postJson(route('private.manifest-editor.save', $this->case), $bad)->assertUnprocessable();
+        $this->assertNull($this->case->fresh()->manifest_layout);
+        $this->assertSame([], Storage::disk('local')->files('manifest-editor'));
+    }
+
+    public function test_assets_are_frozen_until_refreshed_and_trashed_case_cannot_be_edited(): void
+    {
+        $photo = UploadedFile::fake()->image('photo.png');
+        Storage::disk('local')->put('photos/one.png', file_get_contents($photo->getRealPath()));
+        $this->case->update(['photo_path' => 'photos/one.png']);
+        $this->postJson(route('private.manifest-editor.save', $this->case), $this->payload())->assertOk();
+        $savedPhoto = $this->case->fresh()->manifest_layout['assets']['photo'];
+        $this->case->update(['photo_path' => null]);
+        $data = $this->getJson(route('private.manifest-editor.show', $this->case))->assertOk()->json();
+        $this->assertTrue($data['stale']);
+        $this->assertSame($savedPhoto, $data['assets']['photo']);
+        $this->assertNull($data['currentAssets']['photo']);
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        $this->case->delete();
+        $this->get(FuneralCaseResource::getUrl('manifest-editor', ['record' => $this->case]))->assertForbidden();
+    }
+
+    public function test_trash_preserves_assets_and_force_delete_removes_all_revisions(): void
+    {
+        $this->postJson(route('private.manifest-editor.save', $this->case), $this->payload())->assertOk();
+        $first = $this->case->fresh()->manifest_layout['image_path'];
+        $this->postJson(route('private.manifest-editor.save', $this->case), $this->payload())->assertOk();
+        $second = $this->case->fresh()->manifest_layout['image_path'];
+        $this->actingAs(User::factory()->create(['role' => UserRole::Admin]));
+        $this->case->delete();
+        Storage::disk('local')->assertExists([$first, $second]);
+        $this->case->forceDelete();
+        Storage::disk('local')->assertMissing([$first, $second]);
+        $this->assertSame(0, AuditEvent::where('event', 'manifest_layout_saved')->count());
+    }
+}

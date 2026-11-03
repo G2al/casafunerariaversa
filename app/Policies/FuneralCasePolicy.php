@@ -29,7 +29,7 @@ class FuneralCasePolicy
 
     public function delete(User $user, FuneralCase $case): bool
     {
-        return $this->view($user, $case);
+        return $user->isAdmin() && $this->view($user, $case);
     }
 
     public function restore(User $user, FuneralCase $case): bool
@@ -44,16 +44,16 @@ class FuneralCasePolicy
 
     public function deleteAny(User $user): bool
     {
-        return $this->viewAny($user);
+        return $user->isAdmin();
     }
 
     public function forceDelete(User $user, FuneralCase $case): bool
     {
-        return $this->view($user, $case);
+        return $user->isAdmin() && $this->view($user, $case);
     }
 
     public function forceDeleteAny(User $user): bool
     {
-        return $this->viewAny($user);
+        return $user->isAdmin();
     }
 }

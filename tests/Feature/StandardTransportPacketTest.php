@@ -28,14 +28,14 @@ class StandardTransportPacketTest extends TestCase
         Storage::fake('local');
     }
 
-    public function test_four_pages_keep_original_cremation_references_ashes_and_selected_staff(): void
+    public function test_four_pages_show_cemetery_and_selected_staff_without_cremation(): void
     {
         $case = $this->prepareRequest(FuneralCase::create(['type' => 'standard_transport']), 12);
         $case->technicalDirector->update(['birth_date' => null, 'birth_place' => null, 'residence_city' => null, 'residence_address' => null]);
         $case->update(['identity_document_type' => 'electronic_id']);
         $document = app(PdfGenerator::class)->generate($case->fresh(), 'document');
         $data = $document->snapshot;
-        $this->assertSame('standard_transport_packet_4_pages_v1', $data['request']['template']);
+        $this->assertSame('standard_transport_packet_4_pages_v2', $data['request']['template']);
         $this->assertSame('standard_transport', $document->case_type);
         $bytes = Storage::disk('local')->get($document->file_path);
         $this->assertSame(4, preg_match_all('~/Type\s*/Page\b~', $bytes));
@@ -47,9 +47,13 @@ class StandardTransportPacketTest extends TestCase
             $this->assertGreaterThan($last, $position);
             $last = $position;
         }
-        foreach (['Dopo l’avvenuta cremazione le ceneri saranno affidate', 'Dopo l’avvenuta cremazione le ceneri verranno affidate', 'La cremazione verrà effettuata presso il forno crematorio', 'all’impianto di cremazione', 'Il trasporto della salma dal luogo del decesso alla casa funeraria', 'art. 2 dell’allegato A', 'Operatore Esempio 11', 'Comune destinazione ceneri', 'Via Ceneri 15', 'Carta d’identità elettronica', 'DOC-TEST-123', 'TEST-INPS-111', 'IN FEDE'] as $text) {
+        foreach (['al cimitero di', 'Cimitero di prova', 'Operatore Esempio 11', 'DOC-TEST-123', 'TEST-INPS-111', 'IN FEDE'] as $text) {
             $this->assertStringContainsString($text, $html);
         }
+        foreach (['impianto di cremazione', 'forno crematorio', 'ceneri', 'AUT-TEST-001'] as $text) {
+            $this->assertStringNotContainsString($text, $html);
+        }
+        $this->assertNull($data['request']['packet']['ashes']);
         $this->assertStringNotContainsString('BOZZA', $html);
         $this->assertStringNotContainsString('Corvino', $html);
         $this->assertCount(12, $data['request']['staff']);
@@ -68,7 +72,7 @@ class StandardTransportPacketTest extends TestCase
         $this->get(route('private.document', $document))->assertForbidden();
     }
 
-    public function test_normal_transport_form_saves_ashes_and_shared_document_fields(): void
+    public function test_normal_transport_form_saves_shared_document_fields(): void
     {
         $case = $this->prepareRequest(FuneralCase::create(['type' => 'standard_transport']));
         Livewire::test(EditCase::class, ['record' => $case->id])->fillForm([
@@ -78,17 +82,17 @@ class StandardTransportPacketTest extends TestCase
         ])->call('save')->assertHasNoFormErrors();
         $case = $case->fresh();
         $this->assertSame('passport', $case->identity_document_type);
-        $this->assertSame('Affidatario di prova', $case->cremation_details['ashes_custodian']);
+        $this->assertSame('Familiare Esempio', $case->cremation_details['ashes_custodian']);
         $data = app(DocumentData::class)->assemble($case, 'document');
         $this->assertSame('Passaporto', $data['request']['packet']['identification']['type']);
         $this->assertSame('PASS-TEST-777', $data['request']['packet']['identification']['number']);
     }
 
-    public function test_missing_ashes_are_reported_for_normal_transport_only(): void
+    public function test_missing_ashes_do_not_apply_to_normal_transport(): void
     {
         $case = $this->prepareRequest(FuneralCase::create(['type' => 'standard_transport']));
         $case->update(['cremation_details' => array_replace($case->cremation_details, ['ashes_custodian' => null])]);
-        $this->assertStringContainsString('Affidatario delle ceneri', implode(' ', app(DocumentData::class)->missing($case, 'document')));
+        $this->assertSame([], app(DocumentData::class)->missing($case, 'document'));
         $case->update(['type' => 'cremation']);
         $this->assertSame([], app(DocumentData::class)->missing($case, 'document'));
     }

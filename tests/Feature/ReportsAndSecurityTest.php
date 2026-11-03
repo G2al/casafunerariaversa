@@ -45,6 +45,7 @@ class ReportsAndSecurityTest extends TestCase
         $csv = ob_get_clean();
         $this->assertStringContainsString("'=FORMULA()", $csv);
         $this->assertStringNotContainsString('Riservato B', $csv);
+        $this->actingAs($admin);
         $own->delete();
         $this->assertSame(1, $service->summary($a)['archived']);
         $this->assertSame(0, $service->summary($a)['in_progress']);

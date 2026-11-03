@@ -4,12 +4,14 @@ namespace App\Filament\Resources\ManifestTemplateResource\Pages;
 
 use App\Filament\Resources\ManifestTemplateResource;
 use App\Models\ManifestTemplate;
+use App\Services\OptimizedUpload;
 use App\Services\PrivateImage;
 use Filament\Actions\Action;
 use Filament\Actions\CreateAction;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ManageRecords;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
@@ -20,7 +22,7 @@ class ManageTemplates extends ManageRecords
     protected function getHeaderActions(): array
     {
         return [CreateAction::make(), Action::make('bulk_upload')->label('Carica più cornici')->schema([
-            FileUpload::make('images')->label('Immagini')->disk('local')->directory('frames')->visibility('private')->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->multiple()->maxFiles(100)->required()->preventFilePathTampering()->storeFileNamesIn('names'),
+            FileUpload::make('images')->label('Immagini')->disk('local')->directory('frames')->visibility('private')->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, 'frames'))->multiple()->maxFiles(100)->required()->preventFilePathTampering()->storeFileNamesIn('names'),
         ])->action(function (array $data) {
             Gate::authorize('create', ManifestTemplate::class);
             DB::transaction(function () use ($data) {

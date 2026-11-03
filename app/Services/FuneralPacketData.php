@@ -14,6 +14,9 @@ class FuneralPacketData
 {
     public function missing(FuneralCase $case): array
     {
+        if (! $case->transport_enabled) {
+            return [];
+        }
         $case->loadMissing(['technicalDirector', 'transportStaff', 'staffMember', 'vehicle', 'priorTransferVehicle']);
         $missing = [];
         foreach ([
@@ -91,7 +94,8 @@ class FuneralPacketData
     public function assemble(FuneralCase $case, array $company): array
     {
         return [
-            'template' => $case->type === CaseType::Cremation ? 'cremation_packet_4_pages_v2' : 'standard_transport_packet_4_pages_v1',
+            'template' => $case->transport_enabled ? ($case->type === CaseType::Cremation ? 'cremation_packet_4_pages_v3' : 'standard_transport_packet_4_pages_v2') : 'service_mandate_v1',
+            'transport_enabled' => $case->transport_enabled, 'prior_transfer_enabled' => $case->prior_transfer_enabled,
             'packet' => $this->packet($case, $company),
             'deceased' => [
                 'name' => $case->full_name, 'female' => $case->sex === 'female',
@@ -111,7 +115,8 @@ class FuneralPacketData
             'vehicle' => $case->vehicle?->only(['name', 'plate', 'credentials']) ?? array_fill_keys(['name', 'plate', 'credentials'], null),
             'scope' => $case->transport_scope, 'origin' => $case->transport_origin,
             'destination' => $case->transport_destination, 'destination_city' => $case->transport_destination_city,
-            'crematorium' => $case->crematorium,
+            'crematorium' => $case->type === CaseType::Cremation ? $case->crematorium : null,
+            'cemetery' => $case->cemetery, 'route' => $case->transport_route,
             'distance_km' => $case->transport_distance_km,
             'distance_description' => blank($case->transport_distance_km) ? null : ((float) $case->transport_distance_km < 100 ? 'meno di 100 Km' : rtrim(rtrim(number_format((float) $case->transport_distance_km, 2, ',', '.'), '0'), ',').' Km'),
             'transport_date' => $case->transport_at?->format('d/m/Y'), 'transport_time' => $case->transport_at?->format('H:i'),
@@ -120,8 +125,6 @@ class FuneralPacketData
                 'destination' => $case->prior_transfer_destination, 'date' => $case->prior_transfer_date?->format('d/m/Y'),
                 'doctor' => $case->certifying_doctor, 'vehicle_plate' => $case->priorTransferVehicle?->plate,
             ],
-            'additional_note' => $case->transport_request_note,
-            'additional_attachments' => [$case->transport_attachment_extra_1, $case->transport_attachment_extra_2],
             'font_size' => 9.2,
         ];
     }
@@ -165,7 +168,7 @@ class FuneralPacketData
         $rules['report_at'] = 'required|date';
         $rules['sanitary_precautions'] = 'nullable|string|max:255';
         if ($case->type === CaseType::StandardTransport) {
-            foreach (['transport_purpose' => 'Finalità del trasporto (per essere)', 'ashes_custodian' => 'Affidatario delle ceneri', 'ashes_placement' => 'Luogo di deposizione delle ceneri', 'ashes_city' => 'Comune di destinazione delle ceneri', 'ashes_address' => 'Indirizzo di destinazione delle ceneri'] as $field => $label) {
+            foreach (['transport_purpose' => 'Finalità del trasporto (per essere)'] as $field => $label) {
                 $labels[$field] = $label;
                 $rules[$field] = 'required|string|max:255';
             }
@@ -197,7 +200,7 @@ class FuneralPacketData
         }
         $invalid = Validator::make($details, $rules)->errors()->keys();
         $missing = array_map(fn ($key) => ($labels[$key] ?? $key).' (pagine 2–4: dato mancante o non valido)', $invalid);
-        foreach (['authorization_number' => 'Estremi autorizzazione del singolo trasporto', 'contact_first_name' => 'Nome del familiare delegante', 'contact_last_name' => 'Cognome del familiare delegante', 'contact_relationship' => 'Parentela del familiare delegante', 'contact_city' => 'Comune del familiare delegante', 'contact_address' => 'Indirizzo completo del familiare delegante'] as $field => $label) {
+        foreach (['contact_first_name' => 'Nome del familiare delegante', 'contact_last_name' => 'Cognome del familiare delegante', 'contact_relationship' => 'Parentela del familiare delegante', 'contact_city' => 'Comune del familiare delegante', 'contact_address' => 'Indirizzo completo del familiare delegante'] as $field => $label) {
             if (blank($case->$field)) {
                 $missing[] = $label;
             }
@@ -239,14 +242,14 @@ class FuneralPacketData
                 'expires_at' => $date($prefix.'_document_expires_at'),
             ],
             'transport_purpose' => $details['transport_purpose'] ?? null,
-            'ashes' => [
+            'ashes' => $case->type === CaseType::Cremation ? [
                 'custodian' => $details['ashes_custodian'] ?? null, 'placement' => $details['ashes_placement'] ?? null,
                 'city' => $details['ashes_city'] ?? null, 'address' => $details['ashes_address'] ?? null,
-            ],
+            ] : null,
             'coffin_type' => ($details['coffin_type'] ?? null),
             'wooden_lining' => in_array($details['coffin_type'] ?? null, ['wood', 'biodegradable'], true) ? ($details['wooden_lining'] ?? null) : null,
             'sanitary_precautions' => $details['sanitary_precautions'] ?? null,
-            'transport_authorization' => ['number' => $case->authorization_number, 'date' => $date('transport_authorization_date'), 'issuer' => ($details['transport_authorization_issuer'] ?? null)],
+            'transport_authorization' => ['date' => $date('transport_authorization_date'), 'issuer' => ($details['transport_authorization_issuer'] ?? null)],
             'report_place' => ($details['report_place'] ?? null), 'report_date' => $this->formatDate($details['report_at'] ?? null), 'report_time' => $this->formatDate($details['report_at'] ?? null, 'H:i'),
             'declaration_place' => ($details['declaration_place'] ?? null), 'declaration_date' => $date('declaration_date'),
             'church' => $case->church, 'ceremony_city' => $case->ceremony_city,

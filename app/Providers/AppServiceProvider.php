@@ -10,6 +10,7 @@ use App\Models\ManifestTemplate;
 use App\Models\User;
 use App\Policies\AdminPolicy;
 use App\Policies\FuneralCasePolicy;
+use Filament\Forms\Components\DateTimePicker;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -34,5 +35,6 @@ class AppServiceProvider extends ServiceProvider
         }
         Gate::policy(FuneralCase::class, FuneralCasePolicy::class);
         Carbon::setLocale('it');
+        DateTimePicker::configureUsing(fn ($field) => $field->native(true)->extraInputAttributes(['lang' => 'it']), isImportant: true);
     }
 }

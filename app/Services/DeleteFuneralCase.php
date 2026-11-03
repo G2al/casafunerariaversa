@@ -24,7 +24,8 @@ class DeleteFuneralCase
                 return true;
             }
             Gate::authorize('forceDelete', $locked);
-            $paths = collect([$locked->photo_path, $locked->identity_front_path, $locked->identity_back_path])
+            $paths = collect([$locked->photo_path, $locked->identity_front_path, $locked->identity_back_path, $locked->death_certificate_path, $locked->istat_path, $locked->manifest_layout['image_path'] ?? null])
+                ->merge(AuditEvent::where('funeral_case_id', $locked->id)->where('event', 'manifest_layout_saved')->get()->pluck('changed_fields.image_path'))
                 ->merge($locked->documents()->pluck('file_path'))->filter()->unique()->values()->all();
 
             // Le versioni restano immutabili finché esiste la pratica; qui si elimina
@@ -84,12 +85,12 @@ class DeleteFuneralCase
     private function ownedPath(mixed $path): bool
     {
         return is_string($path) && ! str_contains($path, '..') && ! str_contains($path, '\\')
-            && (str_starts_with($path, 'photos/') || str_starts_with($path, 'identity-documents/') || str_starts_with($path, 'pdf/'));
+            && (str_starts_with($path, 'photos/') || str_starts_with($path, 'identity-documents/') || str_starts_with($path, 'pdf/') || str_starts_with($path, 'case-documents/') || str_starts_with($path, 'manifest-editor/'));
     }
 
     private function stillUsed(string $path): bool
     {
-        return FuneralCase::withTrashed()->where(fn ($query) => $query->where('photo_path', $path)->orWhere('identity_front_path', $path)->orWhere('identity_back_path', $path))->exists()
+        return FuneralCase::withTrashed()->where(fn ($query) => $query->where('photo_path', $path)->orWhere('identity_front_path', $path)->orWhere('identity_back_path', $path)->orWhere('death_certificate_path', $path)->orWhere('istat_path', $path)->orWhere('manifest_layout->image_path', $path))->exists()
             || FuneralDocument::where('file_path', $path)->exists()
             || ManifestTemplate::where('image_path', $path)->exists()
             || (CompanySettings::current()['logo_path'] ?? null) === $path;

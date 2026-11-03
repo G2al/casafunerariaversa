@@ -8,7 +8,6 @@ use App\Filament\Resources\FuneralStaffMemberResource\Pages\ManageStaff;
 use App\Filament\Resources\FuneralVehicleResource\Pages\ManageVehicles;
 use App\Filament\Resources\ManifestTemplateResource\Pages\ManageTemplates;
 use App\Filament\Resources\UserResource\Pages\ManageUsers;
-use App\Models\AuditEvent;
 use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
 use App\Models\FuneralStaffMember;
@@ -17,6 +16,7 @@ use App\Models\ManifestTemplate;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
@@ -33,25 +33,19 @@ class BulkActionsTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
     }
 
-    public function test_operator_bulk_delete_is_scoped_and_permanent(): void
+    public function test_operator_cannot_delete_or_force_delete_even_own_cases(): void
     {
-        $operator = User::factory()->create();
-        $this->actingAs($operator);
-        $own = FuneralCase::create(['type' => 'cremation']);
-        $second = FuneralCase::create(['type' => 'standard_transport']);
         $this->actingAs(User::factory()->create());
-        $foreign = FuneralCase::create(['type' => 'cremation']);
-        $this->actingAs($operator);
-        Livewire::test(ListCases::class)->selectTableRecords([$own, $second, $foreign])
-            ->callAction(TestAction::make('delete')->table()->bulk());
-        $this->assertModelMissing($own);
-        $this->assertModelMissing($second);
-        $this->assertNotSoftDeleted($foreign);
-        $this->assertSame(2, AuditEvent::where('event', 'permanently_deleted')->where('user_id', $operator->id)->count());
-        $this->assertTrue(Gate::allows('forceDeleteAny', FuneralCase::class));
-        Livewire::test(ListCases::class)->assertActionHidden(TestAction::make('restore')->table()->bulk());
-
-        $this->assertSame(0, FuneralCase::withTrashed()->whereIn('id', [$own->id, $second->id])->count());
+        $case = FuneralCase::create(['type' => 'cremation']);
+        Livewire::test(ListCases::class)
+            ->assertActionHidden(TestAction::make('delete')->table()->bulk())
+            ->assertActionHidden(TestAction::make('forceDelete')->table()->bulk())
+            ->assertActionHidden(TestAction::make('delete')->table($case));
+        $this->assertFalse(Gate::allows('delete', $case));
+        $this->assertFalse(Gate::allows('forceDelete', $case));
+        $this->assertNotSoftDeleted($case);
+        $this->expectException(AuthorizationException::class);
+        $case->delete();
     }
 
     public function test_transport_bulk_delete_skips_used_records_including_archived_cases(): void

@@ -51,7 +51,7 @@ class ManifestLayout
             $y = $portraitSize ? ($portraitSize['height'] + 14) * $scale : 0;
             $lines = [];
             $gap = 0;
-            foreach ($blocks as [$text, $size, $isBold, $spaceAfter, $relativeWidth]) {
+            foreach ($blocks as $blockIndex => [$text, $size, $isBold, $spaceAfter, $relativeWidth]) {
                 if (trim($text) === '') {
                     continue;
                 }
@@ -60,7 +60,7 @@ class ManifestLayout
                 $font = $isBold ? $bold : $normal;
                 $lineWidth = $area['w'] * $relativeWidth;
                 foreach ($this->wrap($text, $font, $size, $lineWidth, $metrics) as $line) {
-                    $lines[] = ['text' => $line, 'x' => $area['x'] + ($area['w'] - $lineWidth) / 2, 'y' => $y, 'width' => $lineWidth, 'size' => $size, 'bold' => $isBold];
+                    $lines[] = ['key' => ['intro', 'name', 'age', 'family', 'viewing', 'transfer', 'ceremony', 'closing', 'date', 'agency'][$blockIndex], 'text' => $line, 'x' => $area['x'] + ($area['w'] - $lineWidth) / 2, 'y' => $y, 'width' => $lineWidth, 'size' => $size, 'bold' => $isBold];
                     $y += $size * 1.5;
                 }
                 $gap = $spaceAfter * $scale;

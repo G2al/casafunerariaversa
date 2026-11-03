@@ -34,6 +34,7 @@ class FuneralDomainTest extends TestCase
         $second = FuneralCase::create(['type' => 'standard_transport']);
         $this->assertStringEndsWith('0002', $second->code);
         $this->assertNull($second->age);
+        $this->actingAs($admin);
         $case->delete();
         $this->assertSoftDeleted($case);
         $this->assertFalse(Gate::forUser($a)->allows('restore', $case));

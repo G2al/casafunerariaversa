@@ -73,6 +73,10 @@ class PermanentCaseDeletionTest extends TestCase
         $case->transportStaff()->sync([$member->id]);
         $document = $this->document($case);
         Livewire::test(ListCases::class)->callAction(TestAction::make('delete')->table($case))->assertHasNoActionErrors();
+        $this->assertSoftDeleted($case);
+        $this->assertModelExists($document);
+        Storage::disk('local')->assertExists($document->file_path);
+        Livewire::test(ListCases::class)->filterTable('trashed', false)->callAction(TestAction::make('forceDelete')->table($case))->assertHasNoActionErrors();
         $this->assertModelMissing($case);
         $this->assertModelMissing($document);
         $this->assertSame(0, DB::table('funeral_case_staff')->where('funeral_case_id', $case->id)->count());
@@ -96,17 +100,19 @@ class PermanentCaseDeletionTest extends TestCase
         $one->delete();
         $two->delete();
         Livewire::test(ListCases::class)->filterTable('trashed', false)->selectTableRecords([$one, $two])
-            ->callAction(TestAction::make('delete')->table()->bulk())->assertHasNoActionErrors();
+            ->callAction(TestAction::make('forceDelete')->table()->bulk())->assertHasNoActionErrors();
         $this->assertSame(0, FuneralCase::withTrashed()->count());
         $this->assertModelMissing($document);
         Storage::disk('local')->assertMissing($document->file_path);
     }
 
-    public function test_delete_from_edit_page_is_permanent_and_redirects_to_list(): void
+    public function test_delete_from_edit_page_moves_to_trash_and_can_be_restored(): void
     {
         $case = FuneralCase::create(['type' => 'standard_transport']);
         Livewire::test(EditCase::class, ['record' => $case->id])->callAction('delete')->assertHasNoActionErrors()->assertRedirect();
-        $this->assertModelMissing($case);
+        $this->assertSoftDeleted($case);
+        Livewire::test(EditCase::class, ['record' => $case->id])->callAction('restore')->assertHasNoActionErrors();
+        $this->assertNotSoftDeleted($case);
     }
 
     public function test_direct_force_delete_enforces_owner_policy(): void

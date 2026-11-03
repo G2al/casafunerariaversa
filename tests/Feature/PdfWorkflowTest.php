@@ -95,7 +95,7 @@ class PdfWorkflowTest extends TestCase
             $this->assertStringStartsWith('%PDF-', Storage::disk('local')->get($document->file_path));
             $this->assertNull($document->snapshot['request']['transport_date']);
             $this->assertNull($document->snapshot['request']['packet']['report_date']);
-            $this->assertNull($document->snapshot['request']['distance_description']);
+            $this->assertSame('100 Km', $document->snapshot['request']['distance_description']);
             $this->assertNull($document->snapshot['request']['director']['name']);
             $this->get(route('private.document', $document))->assertOk();
         }
