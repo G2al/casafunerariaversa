@@ -52,13 +52,23 @@ class PrivateFilesController extends Controller
 
     public function identity(FuneralCase $case, string $side)
     {
+        return $this->identityDownload($case, $side, 'identity', 'identity-documents', 'documento');
+    }
+
+    public function delegateIdentity(FuneralCase $case, string $side)
+    {
+        return $this->identityDownload($case, $side, 'delegate_identity', 'delegate-documents', 'documento-delegato');
+    }
+
+    private function identityDownload(FuneralCase $case, string $side, string $prefix, string $directory, string $label)
+    {
         Gate::authorize('view', $case);
         abort_unless(in_array($side, ['front', 'back'], true), 404);
-        $path = $case->{'identity_'.$side.'_path'};
+        $path = $case->{$prefix.'_'.$side.'_path'};
         abort_unless($path && Storage::disk('local')->exists($path), 404);
-        app(PrivateIdentityDocument::class)->validate($path);
+        app(PrivateIdentityDocument::class)->validate($path, $directory);
 
-        return Storage::disk('local')->download($path, $case->code.'-documento-'.$side.'.'.pathinfo($path, PATHINFO_EXTENSION), [
+        return Storage::disk('local')->download($path, $case->code.'-'.$label.'-'.$side.'.'.pathinfo($path, PATHINFO_EXTENSION), [
             'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
         ]);
     }

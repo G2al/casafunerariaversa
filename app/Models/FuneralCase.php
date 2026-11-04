@@ -89,9 +89,9 @@ class FuneralCase extends Model
             if ($case->isDirty('identity_document_type')) {
                 Validator::make(['identity_document_type' => $case->identity_document_type], ['identity_document_type' => ['nullable', new Enum(IdentityDocumentType::class)]])->validate();
             }
-            foreach (['identity_front_path', 'identity_back_path', 'death_certificate_path', 'istat_path'] as $field) {
+            foreach (['identity_front_path', 'identity_back_path', 'death_certificate_path', 'istat_path', 'delegate_identity_front_path', 'delegate_identity_back_path'] as $field) {
                 if ($case->isDirty($field) && $case->$field) {
-                    app(PrivateIdentityDocument::class)->validate($case->$field, in_array($field, ['death_certificate_path', 'istat_path'], true) ? 'case-documents' : 'identity-documents');
+                    app(PrivateIdentityDocument::class)->validate($case->$field, str_starts_with($field, 'delegate_identity_') ? 'delegate-documents' : (in_array($field, ['death_certificate_path', 'istat_path'], true) ? 'case-documents' : 'identity-documents'));
                 }
             }
         });

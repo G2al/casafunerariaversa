@@ -21,6 +21,7 @@ Route::middleware(['auth', ActiveUser::class])->prefix('private')->name('private
     Route::get('documents/{document}', [PrivateFilesController::class, 'document'])->name('document');
     Route::get('cases/{case}/photo', [PrivateFilesController::class, 'photo'])->name('photo');
     Route::get('cases/{case}/attachments/{kind}', [PrivateFilesController::class, 'attachment'])->whereIn('kind', ['death-certificate', 'istat'])->name('attachment');
+    Route::get('cases/{case}/delegate-identity/{side}', [PrivateFilesController::class, 'delegateIdentity'])->whereIn('side', ['front', 'back'])->name('delegate-identity');
     Route::get('cases/{case}/identity/{side}', [PrivateFilesController::class, 'identity'])->whereIn('side', ['front', 'back'])->name('identity');
     Route::get('templates/{template}', [PrivateFilesController::class, 'template'])->name('template');
     Route::get('company/logo', [PrivateFilesController::class, 'logo'])->name('logo');

@@ -251,4 +251,13 @@ class ManifestEditorTest extends TestCase
         $this->assertSame($saved['revision'], $this->case->fresh()->manifest_layout['revision']);
         $this->assertCount(1, Storage::disk('local')->files('manifest-editor'));
     }
+
+    public function test_frame_can_be_removed_from_a_saved_editor_composition(): void
+    {
+        $payload = $this->payload();
+        $payload['scene']['backgroundAsset'] = 'none';
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
+        $this->getJson(route('private.manifest-editor.show', $this->case))->assertOk()->assertJsonPath('scene.backgroundAsset', 'none');
+        $this->assertSame('none', $this->case->fresh()->manifest_layout['scene']['backgroundAsset']);
+    }
 }

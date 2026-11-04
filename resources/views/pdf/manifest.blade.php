@@ -6,7 +6,9 @@ body { margin: 0; font-family: 'DejaVu Serif', serif; }
 .line { position: absolute; text-align: center; line-height: 1.25; white-space: nowrap; }
 </style></head><body>
 {{-- Le cornici devono essere A4 landscape: contain conserva integralmente proporzioni e bordi. --}}
+@if($data['background'])
 <div class="background" style="left:{{ $data['layout']['page']['margin'] }}pt;top:{{ $data['layout']['page']['margin'] }}pt;width:{{ $data['layout']['page']['width'] }}pt;height:{{ $data['layout']['page']['height'] }}pt;text-align:center;line-height:0"><img src="{{ $data['background'] }}" style="max-width:{{ $data['layout']['page']['width'] }}pt;max-height:{{ $data['layout']['page']['height'] }}pt;width:auto;height:auto"></div>
+@endif
 @if($data['photo'])<img src="{{ $data['photo'] }}" style="position:absolute;left:{{ $data['layout']['photo']['x'] }}pt;top:{{ $data['layout']['photo']['y'] }}pt;width:{{ $data['layout']['photo']['width'] }}pt;height:{{ $data['layout']['photo']['height'] }}pt">@endif
 <div style="position:absolute;left:{{ $data['layout']['separator']['x'] }}pt;top:{{ $data['layout']['separator']['y'] }}pt;width:{{ $data['layout']['separator']['width'] }}pt;border-top:1pt solid black"></div>
 @foreach($data['layout']['lines'] as $line)

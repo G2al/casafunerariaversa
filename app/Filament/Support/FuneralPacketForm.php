@@ -67,12 +67,14 @@ class FuneralPacketForm
 
     public static function familyDocument(): Section
     {
-        return Section::make('Documento del familiare referente')->description('Questi estremi compilano il testimone a pagina 2 del documento.')->schema([
+        return Section::make('Documento del familiare referente / delegato')->description('Questi estremi compilano il testimone a pagina 2. Fronte e retro sono facoltativi e privati: JPEG, PNG, WebP o PDF.')->schema([
             Select::make('cremation_details.contact_document_type')->label('Tipologia di documento')->options(IdentityDocumentType::class),
             self::text('contact_document_number', 'Numero di documento'),
             self::text('contact_document_issuer', 'Ente di rilascio'),
             self::date('contact_document_expires_at', 'Scadenza')->afterOrEqual('cremation_details.contact_document_issued_at'),
             self::date('contact_document_issued_at', 'Emissione')->maxDate(today()),
+            PrivateDocumentUpload::make('delegate_identity_front_path', 'Fronte documento del delegato', 'delegate-documents', 'private.delegate-identity', 'front'),
+            PrivateDocumentUpload::make('delegate_identity_back_path', 'Retro documento del delegato', 'delegate-documents', 'private.delegate-identity', 'back'),
         ])->columns(2)->columnSpanFull();
     }
 

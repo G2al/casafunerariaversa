@@ -141,8 +141,8 @@ class FuneralCaseResource extends Resource
         $tabs[] = Tab::make('Manifesto')->schema([
             Section::make('Cornice e contenuti')->description('Salva la pratica prima di aprire l’anteprima. L’anteprima è il PDF effettivo.')->schema([
                 Placeholder::make('custom_manifest_notice')->label('Manifesto personalizzato')->content('È attiva una composizione salvata nell’editor live. Per aggiornare testi, foto o disposizione apri Modifica manifesto live e usa Aggiorna dalla pratica.')->visible(fn (?FuneralCase $record) => filled($record?->manifest_layout))->columnSpanFull(),
-                Select::make('manifest_template_id')->label('Cornice')->options(fn () => ManifestTemplate::where('is_active', true)->orderBy('sort_order')->pluck('title', 'id'))->searchable()->live()
-                    ->helperText('Se il catalogo è vuoto, l’amministratore può caricare le immagini in Cornici manifesti.'),
+                Select::make('manifest_template_id')->label('Cornice (facoltativa)')->options(fn () => ManifestTemplate::where('is_active', true)->orderBy('sort_order')->pluck('title', 'id'))->searchable()->live()
+                    ->helperText('Puoi lasciare vuoto per un manifesto su sfondo bianco. Le immagini si caricano in Cornici manifesti.'),
                 View::make('filament.forms.template-gallery')->columnSpanFull(),
                 TextInput::make('manifest_options.intro')->label('Introduzione personalizzata')->maxLength(250)->helperText('Vuoto: testo automatico in base al sesso.'),
                 Textarea::make('manifest_options.family_text')->label('Testo dell’annuncio')->maxLength(2400)->rows(4)->helperText('Vuoto: composto dall’elenco dei familiari. La modifica vale solo per questo manifesto.'),

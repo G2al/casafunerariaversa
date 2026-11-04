@@ -79,6 +79,9 @@ class ManifestEditor
                 $assets = $this->assets($locked, $data);
                 $frozen = $locked->{$this->field()}['assets'] ?? [];
                 foreach (array_unique(array_filter(array_merge(array_column($scene['elements'], 'asset'), [$scene['backgroundAsset'] ?? null]))) as $key) {
+                    if ($key === 'none') {
+                        continue;
+                    }
                     if (isset($frozen[$key]) && (! in_array($key, $input['freshAssets'] ?? [], true) || empty($assets[$key]))) {
                         $assets[$key] = $frozen[$key];
                     }
@@ -218,7 +221,7 @@ class ManifestEditor
     {
         $validated = Validator::make(['scene' => $scene], [
             'scene' => 'required|array:version,elements,backgroundAsset', 'scene.version' => 'required|integer|in:1',
-            'scene.backgroundAsset' => 'nullable|string|regex:/^frame_[0-9]+$/',
+            'scene.backgroundAsset' => ['nullable', 'string', 'regex:/^(frame_[0-9]+|none)$/'],
             'scene.elements' => 'present|array|max:40',
             'scene.elements.*' => 'array:id,type,text,asset,x,y,width,height,fontSize,fontFamily,bold,italic,color,align,lineHeight,locked,fill,stroke,strokeWidth,stretchY',
             'scene.elements.*.id' => 'required|string|regex:/^[a-zA-Z0-9_-]{1,50}$/|distinct',

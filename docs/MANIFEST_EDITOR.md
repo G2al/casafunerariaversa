@@ -2,7 +2,7 @@
 
 ## Uso
 
-Aprire una pratica salvata e scegliere **Modifica manifesto live**, disponibile tra le azioni PDF, anche nelle pagine di visualizzazione e modifica. Prima scegliere la cornice nel tab Manifesto e caricare l'eventuale foto nella pratica; il logo arriva dalle Impostazioni agenzia.
+Aprire una pratica salvata e scegliere **Modifica manifesto live**, disponibile tra le azioni PDF, anche nelle pagine di visualizzazione e modifica. La cornice nel tab Manifesto è facoltativa: senza selezione si parte da uno sfondo bianco. Caricare l'eventuale foto nella pratica; il logo arriva dalle Impostazioni agenzia.
 
 L'editor Fabric.js parte dalla disposizione automatica e permette di:
 
@@ -110,3 +110,11 @@ Le maniglie centrali sopra e sotto allungano o schiacciano le lettere in vertica
 Il parametro opzionale stretchY viene conservato nel JSON dell’editor e validato tra 0.1 e 10; le composizioni precedenti partono da 1. Nessuna nuova migrazione. Pubblicare insieme codice PHP e public/build aggiornati, poi rigenerare le cache e ricaricare l’editor completamente.
 
 Verifica: 13 test mirati superati (137 asserzioni), prova browser nei due editor di tutti gli angoli e lati, altezza indipendente, mantenimento delle proporzioni dopo stiramento e salvataggio/riapertura.
+
+## Cornice facoltativa e documento del delegato
+
+Anteprima, generazione e editor del manifesto sono disponibili senza cornice (sfondo bianco). Nell’editor si può anche scegliere **Senza cornice** e salvare questa preferenza nel progetto. Una cornice esplicitamente selezionata deve essere attiva; i PDF e le composizioni precedenti restano conservati.
+
+Nel tab **Familiare referente**, sezione **Documento del familiare referente / delegato**, sono disponibili upload facoltativi fronte/retro: JPEG, PNG, WebP o PDF, massimo 10 MB ciascuno. Le immagini vengono ottimizzate, i PDF conservati nel formato originale. Sono allegati privati scaricabili da chi accede alla pratica; non vengono aggiunti automaticamente alle pagine del PDF. Il cestino conserva i file e l’eliminazione definitiva li rimuove, proteggendo eventuali riferimenti condivisi.
+
+Migrazione incrementale `2026_11_04_000300_add_delegate_document_uploads`, applicata localmente con verifica dati/PDF storici invariati. Aggiornare codice e public/build; eseguire optimize:clear, migrate --force e optimize.

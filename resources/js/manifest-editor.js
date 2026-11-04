@@ -169,7 +169,7 @@ async function start(root) {
         const initial = folders.find(folder => data.catalog.symbols.some(item => item.folder === folder.id));
         $('[data-symbol-folder]').value = [...$('[data-symbol-folder]').options].some(option => option.value === previousFolder) ? previousFolder : String(initial?.id ?? folders[0]?.id ?? 'uploads');
         library();
-        $('[data-frame]').replaceChildren(new Option('Seleziona cornice', ''), ...data.catalog.frames.map(item => new Option(item.title, item.key)));
+        $('[data-frame]').replaceChildren(new Option('Seleziona cornice', ''), new Option('Senza cornice', 'none'), ...data.catalog.frames.map(item => new Option(item.title, item.key)));
     }
 
     async function addImage(asset) {
@@ -277,7 +277,7 @@ async function start(root) {
             } else if (name === 'change-frame') {
                 const key = $('[data-frame]').value;
                 if (!key) throw new Error('Seleziona una cornice.');
-                data.assets[key] = data.catalog.frames.find(item => item.key === key).url; freshAssets.add(key);
+                if (key !== 'none') { data.assets[key] = data.catalog.frames.find(item => item.key === key).url; freshAssets.add(key); }
                 const scene = serialize(); scene.backgroundAsset = key; await load(scene); changed();
             } else if (name === 'upload') {
                 const file = $('[data-upload]').files[0]; if (!file) throw new Error('Seleziona prima una immagine JPEG, PNG o WebP.');

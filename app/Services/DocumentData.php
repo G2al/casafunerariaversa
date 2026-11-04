@@ -17,7 +17,7 @@ class DocumentData
         }
         $fields = ['first_name' => 'Nome', 'last_name' => 'Cognome', 'death_date' => 'Data del decesso'];
         if ($kind === 'manifest') {
-            $fields += ['sex' => 'Sesso', 'manifest_template_id' => 'Cornice'];
+            $fields += ['sex' => 'Sesso'];
         } else {
             $fields += ['birth_date' => 'Data di nascita', 'birth_place' => 'Luogo di nascita', 'death_place' => 'Luogo del decesso', 'transport_at' => 'Data e ora trasporto', 'transport_destination' => 'Destinazione trasporto'];
             if ($case->type === CaseType::Cremation) {
@@ -57,7 +57,7 @@ class DocumentData
         }
         $data['logo'] ??= 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png')));
         $case->loadMissing('manifestTemplate');
-        if (! $case->manifestTemplate?->is_active) {
+        if ($case->manifest_template_id && ! $case->manifestTemplate?->is_active) {
             throw ValidationException::withMessages(['manifest_template_id' => 'Seleziona una cornice attiva.']);
         }
         $options = $case->manifest_options ?? [];
@@ -80,8 +80,8 @@ class DocumentData
             'closing' => ($options['show_closing'] ?? true) ? ($company['closing_text'] ?? '') : '',
             'place_date' => trim(($options['place'] ?? $case->ceremony_city ?? '').' · '.now()->translatedFormat('d F Y'), ' ·'),
             'photo' => ($options['show_photo'] ?? true) ? $images->dataUri($case->photo_path) : null,
-            'background' => $images->dataUri($case->manifestTemplate->image_path),
-            'template_title' => $case->manifestTemplate->title,
+            'background' => $images->dataUri($case->manifestTemplate?->image_path),
+            'template_title' => $case->manifestTemplate?->title ?? 'Senza cornice',
         ];
 
         return $data;

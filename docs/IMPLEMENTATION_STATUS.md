@@ -60,3 +60,6 @@ Controlli grafici del testo: quattro angoli proporzionali con cursori diagonali 
 
 
 Testo verticale: maniglie mt/mb e campo Altezza attivati; stiramento verticale indipendente persistito nel parametro opzionale stretchY. Normalizzazione angoli basata su scaleX per preservare lo stiramento esistente. Test: 13 superati, 137 asserzioni; browser nei due editor (quattro angoli, lati, sopra/sotto, salvataggio/riapertura). Build Vite aggiornata; pubblicare backend e build insieme.
+
+
+Cornice manifesto opzionale in validazione, PDF ed editor; scelta Senza cornice nel progetto. Fronte/retro documento delegato nel tab familiare, upload privati, validazione e accesso autorizzato, conservazione nel cestino e pulizia nel purge. Migrazione incrementale applicata localmente, dati/PDF storici invariati. Test mirati: 25 superati, 257 asserzioni.
