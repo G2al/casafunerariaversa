@@ -96,3 +96,9 @@ Dipendenza aggiunta: `enshrined/svg-sanitize` 1.1.1 ([progetto](https://github.c
 Il PDF salvato dagli editor usa l’immagine esportata dal browser e conserva l’aspetto del simbolo. La prelapide automatica usa invece il supporto SVG di Dompdf: nel controllo visivo una sfumatura SVG è stata resa come colore pieno. Per SVG con effetti complessi usare la prelapide live e salvare la composizione prima di generare il PDF.
 
 Verifica SVG conclusiva: suite completa 95 test superati, 1206 asserzioni; upload singolo/multiplo misto SVG/PNG, sanitizzazione, PDF automatico e prove browser nei due editor (anteprima, inserimento ed esportazione). Pint e audit Composer superati, dati/PDF preesistenti invariati.
+
+## Controlli del testo dagli angoli
+
+I quattro angoli del testo usano la scala proporzionale con cursori diagonali espliciti e punti di presa più grandi; le maniglie centrali sinistra/destra modificano invece la larghezza del riquadro e il ritorno a capo. La dimensione del carattere viene mostrata durante il trascinamento e normalizzata al rilascio, conservandola nel progetto salvato. La proporzione agli angoli resta attiva anche premendo Shift.
+
+Verifica browser Edge: tutti e quattro gli angoli su testo largo, aumento effettivo del font e dell’altezza delle lettere, maniglie laterali senza variazione del font, salvataggio e riapertura in manifesto e prelapide. Build Vite rigenerata: per pubblicare caricare codice e tutta public/build aggiornata, poi ricaricare completamente il browser.

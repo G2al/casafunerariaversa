@@ -10,7 +10,7 @@ async function start(root) {
     const status = (message, error = false) => { $('[data-status]').textContent = message; $('[data-status]').dataset.error = String(error); };
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
     let data, busy = false, dirty = false, restoring = false, history = [], position = -1, timer, currentBackground = null, freshAssets = new Set();
-    const canvas = new Canvas($('[data-canvas]'), { width: W, height: H, backgroundColor: '#ffffff', preserveObjectStacking: true, selection: false, selectionKey: [], enableRetinaScaling: false });
+    const canvas = new Canvas($('[data-canvas]'), { width: W, height: H, backgroundColor: '#ffffff', preserveObjectStacking: true, selection: false, selectionKey: [], enableRetinaScaling: false, uniformScaling: true, uniScaleKey: null });
     root.querySelectorAll('[data-command]').forEach(button => button.disabled = true);
     const objects = () => canvas.getObjects().filter(object => object.editorId);
     const active = () => canvas.getActiveObject();
@@ -111,9 +111,18 @@ async function start(root) {
             object.set({ originX: 'left', originY: 'top', left: item.x, top: item.y, editorId: item.id, editorType: item.type, ...(item.type === 'text' || item.type === 'image' ? { strokeWidth: 0 } : {}), lockRotation: true, cornerColor: '#b45309', borderColor: '#b45309', cornerSize: 11, transparentCorners: false });
             object.setControlsVisibility({ mtr: false });
             if (item.type === 'text') {
-                object.controls = controlsUtils.createObjectDefaultControls();
+                object.controls = controlsUtils.createTextboxDefaultControls();
                 object.setControlsVisibility({ mtr: false, mt: false, mb: false });
-                for (const corner of ['tl','tr','bl','br']) object.controls[corner].actionHandler = controlsUtils.scalingEqually;
+                for (const corner of ['tl','tr','bl','br']) {
+                    const control = object.controls[corner];
+                    control.actionHandler = controlsUtils.scalingEqually;
+                    // Fabric's automatic cursor follows the box aspect ratio and
+                    // becomes horizontal on wide text: keep corners unambiguous.
+                    control.cursorStyleHandler = () => ['tl','br'].includes(corner) ? 'nwse-resize' : 'nesw-resize';
+                    control.sizeX = control.sizeY = 13;
+                    control.touchSizeX = control.touchSizeY = 28;
+                }
+                for (const side of ['ml','mr']) object.controls[side].cursorStyleHandler = () => 'ew-resize';
             }
             lock(object, item.locked);
             canvas.add(object);
@@ -308,6 +317,11 @@ async function start(root) {
         if (standard) centers.push(standard.x + standard.width / 2);
         for (const center of centers) if (Math.abs(target.left + target.getScaledWidth() / 2 - center) < 4) target.set('left', center - target.getScaledWidth() / 2);
         clamp(target);
+    });
+    canvas.on('object:scaling', ({ target }) => {
+        if (target?.editorType !== 'text') return;
+        const size = Math.min(100, Math.max(6, target.fontSize * target.scaleY));
+        $('[data-property="fontSize"]').value = +size.toFixed(2);
     });
     canvas.on('object:modified', ({ target }) => {
         if (target && target.editorType === 'text') {
