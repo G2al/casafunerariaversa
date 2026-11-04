@@ -5,6 +5,7 @@ namespace App\Filament\Support;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
+use App\Models\Symbol;
 use App\Services\OptimizedUpload;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,7 @@ class PrivateUpload
                 }
                 $url = match (true) {
                     $record instanceof FuneralCase => route('private.photo', $record),
+                    $record instanceof Symbol => route('private.symbol', $record),
                     $record instanceof ManifestTemplate => route('private.template', $record),
                     $record instanceof CompanySettings => route('private.logo'),
                     default => null,

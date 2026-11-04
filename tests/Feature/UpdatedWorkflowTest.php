@@ -91,7 +91,7 @@ class UpdatedWorkflowTest extends TestCase
             ->assertFormFieldIsHidden('transport_route')->assertFormFieldIsHidden('technical_director_id')
             ->assertFormFieldIsVisible('cremation_details.mandate_date')
             ->call('save')->assertHasNoFormErrors();
-        $this->assertFalse($case->fresh()->transport_enabled);
+        $this->assertTrue($case->fresh()->transport_enabled); // Il trasporto non è più una scelta del form.
     }
 
     public function test_distance_defaults_to_100_but_custom_and_zero_are_kept(): void
@@ -181,6 +181,6 @@ class UpdatedWorkflowTest extends TestCase
         $case = FuneralCase::create(['type' => 'cremation', 'first_name' => str_repeat('Nome composto ', 16), 'last_name' => str_repeat('Cognome lungo ', 16)]);
         $pdf = app(PdfGenerator::class)->render($case, 'prelapide');
         $this->assertSame(1, preg_match_all('~/Type\s*/Page\b~', $pdf['bytes']));
-        $this->assertLessThan(44, $pdf['snapshot']['font_size']);
+        $this->assertLessThan(44, collect($pdf['snapshot']['layout']['elements'])->firstWhere('id', 'name')['fontSize']);
     }
 }

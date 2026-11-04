@@ -18,6 +18,7 @@ class CaseActions
         $actions = [Action::make('edit_manifest')->label('Modifica manifesto live')->icon('heroicon-o-paint-brush')
             ->visible(fn (FuneralCase $record) => Gate::allows('update', $record) && ! $record->trashed())
             ->url(fn (FuneralCase $record) => FuneralCaseResource::getUrl('manifest-editor', ['record' => $record]))];
+        $actions[] = Action::make('edit_prelapide')->label('Modifica prelapide live')->icon('heroicon-o-paint-brush')->visible(fn (FuneralCase $record) => Gate::allows('update', $record) && ! $record->trashed())->url(fn (FuneralCase $record) => FuneralCaseResource::getUrl('prelapide-editor', ['record' => $record]));
         foreach (['document' => 'Documento', 'manifest' => 'Manifesto', 'prelapide' => 'Prelapide'] as $kind => $label) {
             $actions[] = Action::make('preview_'.$kind)->label('Anteprima '.$label)->icon('heroicon-o-eye')
                 ->url(fn (FuneralCase $record) => route('private.preview', [$record, $kind]))->openUrlInNewTab();

@@ -17,6 +17,8 @@ class EditManifest extends Page
 
     protected static ?string $title = 'Editor manifesto';
 
+    public string $editorKind = 'manifest';
+
     public function mount(int|string $record): void
     {
         $this->record = $this->resolveRecord($record);

@@ -1,4 +1,4 @@
-import { Canvas, Textbox, FabricImage } from 'fabric';
+import { Canvas, Textbox, FabricImage, Rect, Ellipse, Triangle, controlsUtils } from 'fabric';
 
 const W = 841.89, H = 595.28;
 const labels = { intro: 'Introduzione', name: 'Nome e cognome', age: 'Età', family: 'Annuncio familiari', viewing: 'Camera ardente', transfer: 'Trasferimento', ceremony: 'Esequie', closing: 'Ringraziamento', date: 'Luogo e data', agency: 'Firma agenzia', photo: 'Fotografia', logo: 'Logo' };
@@ -9,7 +9,7 @@ async function start(root) {
     const $ = selector => root.querySelector(selector);
     const status = (message, error = false) => { $('[data-status]').textContent = message; $('[data-status]').dataset.error = String(error); };
     const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
-    let data, busy = false, dirty = false, restoring = false, history = [], position = -1, timer;
+    let data, busy = false, dirty = false, restoring = false, history = [], position = -1, timer, currentBackground = null, freshAssets = new Set();
     const canvas = new Canvas($('[data-canvas]'), { width: W, height: H, backgroundColor: '#ffffff', preserveObjectStacking: true, selection: false, selectionKey: [], enableRetinaScaling: false });
     root.querySelectorAll('[data-command]').forEach(button => button.disabled = true);
     const objects = () => canvas.getObjects().filter(object => object.editorId);
@@ -32,10 +32,10 @@ async function start(root) {
     }
 
     function serialize() {
-        return { version: 1, elements: objects().map(object => ({
-            id: object.editorId, type: object.editorAsset ? 'image' : 'text',
-            ...(object.editorAsset ? { asset: object.editorAsset } : { text: object.text }),
-            x: +object.left.toFixed(3), y: +object.top.toFixed(3), width: +object.getScaledWidth().toFixed(3), height: +object.getScaledHeight().toFixed(3),
+        return { version: 1, ...(currentBackground ? { backgroundAsset: currentBackground } : {}), elements: objects().map(object => ({
+            id: object.editorId, type: object.editorType || (object.editorAsset ? 'image' : 'text'),
+            ...(object.editorAsset ? { asset: object.editorAsset } : object.editorType === 'text' ? { text: object.text } : { fill: object.fill || 'transparent', stroke: object.stroke || '#000000', strokeWidth: object.strokeWidth || 0 }),
+            x: +object.left.toFixed(3), y: +object.top.toFixed(3), width: +(object.width * object.scaleX).toFixed(3), height: +(object.height * object.scaleY).toFixed(3),
             fontSize: object.fontSize || 12, fontFamily: object.fontFamily || 'DejaVu Serif', bold: object.fontWeight === 'bold', italic: object.fontStyle === 'italic',
             color: typeof object.fill === 'string' && /^#[a-f\d]{6}$/i.test(object.fill) ? object.fill : '#000000', align: object.textAlign || 'center', lineHeight: object.lineHeight || 1.5, locked: !!object.editorLocked,
         })) };
@@ -56,15 +56,17 @@ async function start(root) {
         select.value = object?.editorId || '';
         $('[data-properties]').disabled = !object;
         $('[data-selection-hint]').hidden = !!object;
-        root.querySelectorAll('[data-text-control]').forEach(node => node.hidden = !!object?.editorAsset);
+        root.querySelectorAll('[data-text-control]').forEach(node => node.hidden = object?.editorType !== 'text');
+        root.querySelectorAll('[data-shape-control]').forEach(node => node.hidden = !object || !['rect','ellipse','triangle'].includes(object.editorType));
         if (!object) return;
         const element = serialize().elements.find(item => item.id === object.editorId);
         root.querySelectorAll('[data-property]').forEach(input => {
             if (document.activeElement === input) return;
-            if (input.type === 'checkbox') input.checked = !!element[input.dataset.property];
-            else input.value = element[input.dataset.property] ?? '';
+            if (input.type === 'checkbox') input.checked = input.dataset.property === 'transparent' ? element.fill === 'transparent' : !!element[input.dataset.property];
+            else input.value = input.type === 'color' && element[input.dataset.property] === 'transparent' ? '#ffffff' : element[input.dataset.property] ?? '';
         });
-        $('[data-property="height"]').disabled = !object.editorAsset;
+        $('[data-property="height"]').disabled = object.editorType === 'text';
+        $('[data-command="full-page"]').disabled = object.editorType === 'text';
         $('[data-command="undo"]').disabled = position <= 0;
         $('[data-command="redo"]').disabled = position >= history.length - 1;
     }
@@ -86,26 +88,55 @@ async function start(root) {
     async function load(scene) {
         restoring = true;
         canvas.clear(); canvas.backgroundColor = '#ffffff';
-        const background = await FabricImage.fromURL(data.assets.background);
-        const scale = Math.min(813.55 / background.width, 566.94 / background.height);
-        background.set({ originX: 'left', originY: 'top', left: 14.17 + (813.55 - background.width * scale) / 2, top: 14.17, scaleX: scale, scaleY: scale, selectable: false, evented: false, strokeWidth: 0 });
-        canvas.add(background);
+        currentBackground = scene.backgroundAsset || null;
+        const backgroundUri = data.assets[currentBackground || 'background'];
+        if (backgroundUri) {
+            const background = await FabricImage.fromURL(backgroundUri);
+            const scale = Math.min(813.55 / background.width, 566.94 / background.height);
+            background.set({ originX: 'left', originY: 'top', left: 14.17 + (813.55 - background.width * scale) / 2, top: 14.17, scaleX: scale, scaleY: scale, selectable: false, evented: false, strokeWidth: 0 });
+            canvas.add(background);
+        }
         for (const item of scene.elements) {
             let object;
             if (item.type === 'image') {
                 if (!data.assets[item.asset]) continue;
                 object = await FabricImage.fromURL(data.assets[item.asset]);
                 object.set({ scaleX: item.width / object.width, scaleY: item.height / object.height, editorAsset: item.asset });
+            } else if (item.type !== 'text') {
+                const Klass = { rect: Rect, ellipse: Ellipse, triangle: Triangle }[item.type];
+                object = new Klass({ width: item.width, height: item.height, ...(item.type === 'ellipse' ? { rx: item.width / 2, ry: item.height / 2 } : {}), fill: item.fill || 'transparent', stroke: item.stroke || '#000000', strokeWidth: item.strokeWidth ?? 1, strokeUniform: true });
             } else {
                 object = new Textbox(item.text || '', { width: item.width, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.bold ? 'bold' : 'normal', fontStyle: item.italic ? 'italic' : 'normal', fill: item.color, textAlign: item.align, lineHeight: item.lineHeight, splitByGrapheme: false });
             }
-            object.set({ originX: 'left', originY: 'top', left: item.x, top: item.y, editorId: item.id, strokeWidth: 0, lockRotation: true, cornerColor: '#b45309', borderColor: '#b45309', cornerSize: 11, transparentCorners: false });
+            object.set({ originX: 'left', originY: 'top', left: item.x, top: item.y, editorId: item.id, editorType: item.type, ...(item.type === 'text' || item.type === 'image' ? { strokeWidth: 0 } : {}), lockRotation: true, cornerColor: '#b45309', borderColor: '#b45309', cornerSize: 11, transparentCorners: false });
             object.setControlsVisibility({ mtr: false });
+            if (item.type === 'text') {
+                object.controls = controlsUtils.createObjectDefaultControls();
+                object.setControlsVisibility({ mtr: false, mt: false, mb: false });
+                for (const corner of ['tl','tr','bl','br']) object.controls[corner].actionHandler = controlsUtils.scalingEqually;
+            }
             lock(object, item.locked);
             canvas.add(object);
         }
         restoring = false;
         fit(); selection();
+    }
+
+    function catalogs() {
+        for (const group of Object.values(data.catalog)) for (const item of group) data.assets[item.key] ??= item.url;
+        $('[data-library]').replaceChildren(new Option('Seleziona simbolo o immagine', ''), ...[...data.catalog.symbols, ...data.catalog.uploads].map(item => new Option(item.title, item.key)));
+        $('[data-frame]').replaceChildren(new Option('Seleziona cornice', ''), ...data.catalog.frames.map(item => new Option(item.title, item.key)));
+    }
+
+    async function addImage(asset) {
+        if (!asset || !data.assets[asset]) throw new Error('Seleziona un simbolo o una immagine.');
+        const scene = serialize(); if (scene.elements.length >= 40) throw new Error('Massimo 40 elementi.');
+        const current = [...data.catalog.symbols, ...data.catalog.uploads].find(item => item.key === asset);
+        if (current) { data.assets[asset] = current.url; freshAssets.add(asset); }
+        const image = await FabricImage.fromURL(data.assets[asset]);
+        const scale = Math.min(160 / image.width, 160 / image.height);
+        scene.elements.push({ id: `extra_${crypto.randomUUID().slice(0,12)}`, type: 'image', asset, x: 300, y: 200, width: image.width * scale, height: image.height * scale, fontSize: 12, fontFamily: 'DejaVu Serif', bold: false, italic: false, color: '#000000', align: 'center', lineHeight: 1.5, locked: false });
+        await load(scene); canvas.setActiveObject(objects().at(-1)); changed();
     }
 
     async function undo(delta) {
@@ -119,12 +150,20 @@ async function start(root) {
         const object = active(); if (!object) return;
         const key = input.dataset.property;
         const value = input.type === 'checkbox' ? input.checked : input.type === 'number' ? Number(input.value) : input.value;
-        if (key === 'locked') lock(object, value);
+        if (key === 'transparent') object.set('fill', value ? 'transparent' : $('[data-property=fill]').value);
+        else if (key === 'locked') lock(object, value);
         else if (key === 'x' || key === 'y') object.set(key === 'x' ? 'left' : 'top', value);
-        else if (key === 'width') object.editorAsset ? object.scaleToWidth(Math.max(10, value)) : object.set('width', Math.max(10, value));
-        else if (key === 'height' && object.editorAsset) object.scaleToHeight(Math.max(5, value));
+        else if (key === 'width') {
+            if (object.editorAsset) object.scaleToWidth(Math.max(10, value));
+            else if (object.editorType === 'text') object.set('width', Math.max(10, value));
+            else object.set('scaleX', Math.max(10, value) / object.width);
+        }
+        else if (key === 'height' && object.editorType !== 'text') {
+            if (object.editorAsset) object.scaleToHeight(Math.max(5, value));
+            else object.set('scaleY', Math.max(0.5, value) / object.height);
+        }
         else object.set(({ bold: 'fontWeight', italic: 'fontStyle', color: 'fill', align: 'textAlign' })[key] || key, key === 'bold' ? (value ? 'bold' : 'normal') : key === 'italic' ? (value ? 'italic' : 'normal') : value);
-        if (!object.editorAsset) object.initDimensions();
+        if (object.editorType === 'text') object.initDimensions();
         clamp(object); canvas.requestRenderAll();
         clearTimeout(timer); timer = setTimeout(changed, 250);
     }
@@ -151,8 +190,8 @@ async function start(root) {
         clearTimeout(timer);
         if (data.stale) throw new Error('I dati della pratica sono cambiati. Usa Aggiorna dalla pratica prima di salvare.');
         const payload = imageExport();
-        const result = await request(data.saveUrl, { method: 'POST', body: JSON.stringify({ ...payload, source: data.source, revision: data.revision, generate }) });
-        data.revision = result.revision; dirty = false;
+        const result = await request(data.saveUrl, { method: 'POST', body: JSON.stringify({ ...payload, freshAssets: [...freshAssets].filter(key => key === (payload.scene.backgroundAsset || 'background') || payload.scene.elements.some(item => item.asset === key)), source: data.source, revision: data.revision, generate }) });
+        data.revision = result.revision; dirty = false; freshAssets.clear();
         $('[data-stale]').hidden = true;
         status(generate ? 'Composizione salvata e nuova versione PDF archiviata.' : 'Composizione salvata.');
         return result;
@@ -177,7 +216,7 @@ async function start(root) {
                 if (!confirm('Ripristinare il manifesto automatico? I PDF già archiviati resteranno conservati.')) return;
                 await request(data.resetUrl, { method: 'DELETE', body: JSON.stringify({ revision: data.revision }) });
                 data = await request(root.dataset.url);
-                await load(data.scene); history = [JSON.stringify(serialize())]; position = 0; dirty = false;
+                catalogs(); await load(data.scene); history = [JSON.stringify(serialize())]; position = 0; dirty = false;
                 $('[data-stale]').hidden = true; status('Disposizione automatica ripristinata.');
             } else if (name === 'refresh') {
                 if (!confirm('Ricaricare testi, foto e cornice dalla pratica? Le modifiche ai testi personalizzati saranno sostituite; le posizioni dei blocchi comuni saranno mantenute.')) return;
@@ -188,14 +227,29 @@ async function start(root) {
                     return previous ? { ...previous, ...(item.type === 'text' ? { text: item.text } : { asset: item.asset }) } : item;
                 });
                 elements.push(...current.elements.filter(e => e.id.startsWith('extra_')));
-                data = updated; data.assets = updated.currentAssets; data.source = updated.currentSource; data.stale = false; await load({ version: 1, elements }); changed();
+                data = updated; data.assets = updated.currentAssets; catalogs(); freshAssets = new Set(Object.keys(data.assets)); data.source = updated.currentSource; data.stale = false; await load({ version: 1, ...(current.backgroundAsset ? { backgroundAsset: current.backgroundAsset } : {}), elements }); changed();
                 $('[data-stale]').hidden = true;
+            } else if (name === 'change-frame') {
+                const key = $('[data-frame]').value;
+                if (!key) throw new Error('Seleziona una cornice.');
+                data.assets[key] = data.catalog.frames.find(item => item.key === key).url; freshAssets.add(key);
+                const scene = serialize(); scene.backgroundAsset = key; await load(scene); changed();
+            } else if (name === 'upload') {
+                const file = $('[data-upload]').files[0]; if (!file) throw new Error('Seleziona prima una immagine JPEG, PNG o WebP.');
+                const body = new FormData(); body.append('image', file);
+                const response = await fetch(data.uploadUrl, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf }, body });
+                const result = await response.json(); if (!response.ok) throw new Error(Object.values(result.errors || {}).flat().join(' ') || result.message);
+                data.assets[result.key] = result.url; data.catalog.uploads.push(result); catalogs();
+                $('[data-library]').value = result.key; await addImage(result.key);
+            } else if (name === 'add-library') {
+                await addImage($('[data-library]').value);
             } else if (name.startsWith('add-')) {
                 const scene = serialize();
                 if (scene.elements.length >= 40) throw new Error('Puoi inserire al massimo 40 elementi.');
+                const shape = ['add-rect','add-ellipse','add-triangle'].includes(name) ? name.slice(4) : null;
                 const asset = name === 'add-photo' ? 'photo' : name === 'add-logo' ? 'logo' : null;
                 if (asset && !data.assets[asset]) throw new Error(asset === 'photo' ? 'Carica prima la foto nella pratica.' : 'Carica prima il logo nelle Impostazioni agenzia.');
-                scene.elements.push({ id: `extra_${crypto.randomUUID().slice(0, 12)}`, type: asset ? 'image' : 'text', ...(asset ? { asset } : { text: 'Nuovo testo' }), x: W / 2 - 90, y: H / 2 - 30, width: asset ? 90 : 180, height: asset ? 90 : 30, fontSize: 20, fontFamily: 'DejaVu Serif', bold: false, italic: false, color: '#000000', align: 'center', lineHeight: 1.5, locked: false });
+                scene.elements.push({ id: `extra_${crypto.randomUUID().slice(0, 12)}`, type: shape || (asset ? 'image' : 'text'), ...(shape ? { fill: 'transparent', stroke: '#000000', strokeWidth: 1 } : {}), ...(asset ? { asset } : { text: 'Nuovo testo' }), x: W / 2 - 90, y: H / 2 - 30, width: asset ? 90 : 180, height: asset ? 90 : 30, fontSize: 20, fontFamily: 'DejaVu Serif', bold: false, italic: false, color: '#000000', align: 'center', lineHeight: 1.5, locked: false });
                 if (asset) {
                     const image = await FabricImage.fromURL(data.assets[asset]);
                     scene.elements.at(-1).height = 90 * image.height / image.width;
@@ -204,7 +258,9 @@ async function start(root) {
             } else if (object) {
                 if (name === 'delete') { canvas.remove(object); canvas.discardActiveObject(); }
                 if (name === 'forward') canvas.moveObjectTo(object, Math.min(canvas.getObjects().length - 1, canvas.getObjects().indexOf(object) + 1));
-                if (name === 'backward') canvas.moveObjectTo(object, Math.max(1, canvas.getObjects().indexOf(object) - 1));
+                if (name === 'backward') canvas.moveObjectTo(object, Math.max(data.assets[currentBackground || 'background'] ? 1 : 0, canvas.getObjects().indexOf(object) - 1));
+                if (name === 'behind') canvas.moveObjectTo(object, data.assets[currentBackground || 'background'] ? 1 : 0);
+                if (name === 'full-page' && object.editorType !== 'text') { object.set({ left: 0, top: 0, scaleX: (W - object.strokeWidth) / object.width, scaleY: (H - object.strokeWidth) / object.height }); }
                 if (name === 'center') object.set('left', (W - object.getScaledWidth()) / 2);
                 if (name === 'center-safe') {
                     const standard = data.automatic?.elements.find(item => item.type === 'text');
@@ -225,7 +281,7 @@ async function start(root) {
         clamp(target);
     });
     canvas.on('object:modified', ({ target }) => {
-        if (target && !target.editorAsset) {
+        if (target && target.editorType === 'text') {
             target.set({ width: target.width * target.scaleX, fontSize: Math.min(100, Math.max(6, target.fontSize * target.scaleY)), scaleX: 1, scaleY: 1 });
             target.initDimensions();
         }
@@ -252,7 +308,7 @@ async function start(root) {
     try {
         data = await request(root.dataset.url);
         await Promise.all(['DejaVu Serif', 'DejaVu Sans'].flatMap(family => ['normal', 'bold', 'italic', 'bold italic'].map(style => document.fonts.load(`${style} 16px "${family}"`))));
-        await load(data.scene);
+        catalogs(); await load(data.scene);
         history = [JSON.stringify(serialize())]; position = 0;
         $('[data-stale]').hidden = !data.stale;
         status(data.revision ? 'Composizione salvata caricata.' : 'Disposizione automatica pronta. Personalizzala e salva.');

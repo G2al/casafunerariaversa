@@ -7,7 +7,7 @@
             @endforeach
         @endforeach
     </style>
-    <div class="me" data-manifest-editor data-url="{{ route('private.manifest-editor.show', $this->getRecord()) }}" wire:ignore>
+    <div class="me" data-manifest-editor data-url="{{ route('private.manifest-editor.show', [$this->getRecord(), 'kind' => $this->editorKind]) }}" wire:ignore>
         <div class="me-top">
             <div><strong>{{ $this->getRecord()->code }} · {{ $this->getRecord()->full_name }}</strong><p>Trascina gli elementi. Fai doppio clic su un testo per modificarlo.</p></div>
             <a class="me-button" href="{{ \App\Filament\Resources\FuneralCaseResource::getUrl('edit', ['record' => $this->getRecord()]) }}">Torna alla pratica</a>
@@ -19,8 +19,16 @@
             <button type="button" data-command="add-text">+ Testo</button>
             <button type="button" data-command="add-photo">+ Foto</button>
             <button type="button" data-command="add-logo">+ Logo</button>
+            <button type="button" data-command="add-rect">+ Rettangolo</button>
+            <button type="button" data-command="add-ellipse">+ Cerchio / ovale</button>
+            <button type="button" data-command="add-triangle">+ Triangolo</button>
             <button type="button" data-command="refresh">Aggiorna dalla pratica</button>
             <button type="button" data-command="reset">Ripristina automatico</button>
+        </div>
+        <div class="me-toolbar">
+            <label>Simboli e immagini<select data-library></select></label><button type="button" data-command="add-library">Inserisci</button>
+            <label>Cornice<select data-frame></select></label><button type="button" data-command="change-frame">Cambia cornice</button>
+            <label>Immagine aggiuntiva<input data-upload type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" data-command="upload">Carica e inserisci</button>
         </div>
         <div class="me-workspace">
             <section class="me-board" aria-label="Foglio A4 orizzontale">
@@ -29,7 +37,7 @@
             </section>
             <aside class="me-properties" aria-label="Proprietà elemento">
                 <label>Elemento<select data-element><option value="">Seleziona sul foglio</option></select></label>
-                <p class="me-hint" data-selection-hint>Seleziona un testo, la foto o il logo per modificarlo. La cornice rimane fissa.</p>
+                <p class="me-hint" data-selection-hint>Seleziona un testo, la foto o il logo per modificarlo. Puoi cambiare la cornice dalla barra superiore.</p>
                 <fieldset data-properties disabled>
                     <label data-text-control>Testo<textarea data-property="text" rows="5"></textarea></label>
                     <div data-text-control>
@@ -39,14 +47,21 @@
                         <label>Allineamento<select data-property="align"><option value="left">Sinistra</option><option value="center">Centro</option><option value="right">Destra</option></select></label>
                         <label>Interlinea<input data-property="lineHeight" type="number" min="1" max="2" step="0.05"></label>
                     </div>
+                    <div data-shape-control hidden>
+                        <label class="me-check"><input data-property="transparent" type="checkbox"> Senza riempimento</label>
+                        <label>Riempimento<input data-property="fill" type="color"></label>
+                        <label>Colore bordo<input data-property="stroke" type="color"></label>
+                        <label>Spessore bordo<input data-property="strokeWidth" type="number" min="0" max="40" step="0.5"></label>
+                    </div>
                     <div class="me-pair"><label>Posizione X<input data-property="x" type="number" min="0" max="841" step="1"></label><label>Posizione Y<input data-property="y" type="number" min="0" max="595" step="1"></label></div>
                     <div class="me-pair"><label>Larghezza<input data-property="width" type="number" min="10" max="841" step="1"></label><label>Altezza<input data-property="height" type="number" min="5" max="595" step="1"></label></div>
                     <label class="me-check"><input data-property="locked" type="checkbox"> Blocca posizione e dimensioni</label>
                     <div class="me-pair"><button type="button" data-command="center">Centra sul foglio</button><button type="button" data-command="center-safe">Centra nell’area testo</button></div>
                     <div class="me-pair"><button type="button" data-command="forward">Porta avanti</button><button type="button" data-command="backward">Porta indietro</button></div>
+                    <div class="me-pair"><button type="button" data-command="full-page">Adatta al foglio</button><button type="button" data-command="behind">Porta sul fondo</button></div>
                     <button type="button" data-command="delete" class="me-danger">Rimuovi elemento</button>
                 </fieldset>
-                <p class="me-hint">Puoi usare le frecce della tastiera per piccoli spostamenti. Foto e cornice si scelgono dalla pratica.</p>
+                <p class="me-hint">Puoi usare le frecce della tastiera per piccoli spostamenti. Trascina gli angoli per ingrandire testi, immagini e forme.</p>
             </aside>
         </div>
         <div class="me-bottom">

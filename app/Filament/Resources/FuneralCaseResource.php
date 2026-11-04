@@ -26,6 +26,7 @@ use Filament\Actions\RestoreBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
@@ -114,6 +115,7 @@ class FuneralCaseResource extends Resource
                 $components[] = FuneralPacketForm::priorTransfer();
             }
             if ($section === 'Familiare referente') {
+                $components[] = FuneralPacketForm::familyDocument();
                 $components[] = Repeater::make('family_members')->label('Persone da nominare nel manifesto')->schema([
                     TextInput::make('relationship')->label('Parentela')->maxLength(100), TextInput::make('name')->label('Nome e cognome')->maxLength(255),
                 ])->columns(2)->defaultItems(0)->maxItems(30)->columnSpanFull();
@@ -157,7 +159,7 @@ class FuneralCaseResource extends Resource
         return $schema->components([
             Section::make('Pratica')->schema([
                 Select::make('type')->label('Procedura')->options(CaseType::class)->required()->live()->helperText('Cambiando procedura i dati comuni restano salvati. I PDF precedenti restano nello storico con la vecchia tipologia.'),
-                Toggle::make('transport_enabled')->label('Trasporto effettuato dalla nostra impresa')->default(true)->live()->helperText('No: il documento comprende solo la delega al servizio, senza i tre moduli di trasporto.'),
+                Hidden::make('transport_enabled')->default(true)->formatStateUsing(fn () => true)->dehydrateStateUsing(fn () => true),
                 Select::make('status')->label('Stato')->options(CaseStatus::class)->default('draft')->required(),
                 DateTimePicker::make('registered_at')->label('Presa in carico')->default(now())->required()->displayFormat('d/m/Y H:i')->seconds(false),
                 Select::make('operator_id')->label('Operatore proprietario')->options(fn () => auth()->user()?->isAdmin() ? User::where('is_active', true)->pluck('name', 'id') : [])->searchable()->visible(fn () => auth()->user()?->isAdmin()),
@@ -233,6 +235,6 @@ class FuneralCaseResource extends Resource
 
     public static function getPages(): array
     {
-        return ['index' => FuneralCaseResource\Pages\ListCases::route('/'), 'create' => FuneralCaseResource\Pages\CreateCase::route('/create'), 'manifest-editor' => FuneralCaseResource\Pages\EditManifest::route('/{record}/manifest-editor'), 'view' => FuneralCaseResource\Pages\ViewCase::route('/{record}'), 'edit' => FuneralCaseResource\Pages\EditCase::route('/{record}/edit')];
+        return ['index' => FuneralCaseResource\Pages\ListCases::route('/'), 'create' => FuneralCaseResource\Pages\CreateCase::route('/create'), 'prelapide-editor' => FuneralCaseResource\Pages\EditPrelapide::route('/{record}/prelapide-editor'), 'manifest-editor' => FuneralCaseResource\Pages\EditManifest::route('/{record}/manifest-editor'), 'view' => FuneralCaseResource\Pages\ViewCase::route('/{record}'), 'edit' => FuneralCaseResource\Pages\EditCase::route('/{record}/edit')];
     }
 }

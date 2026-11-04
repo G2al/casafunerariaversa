@@ -18,27 +18,28 @@ class PdfGenerator
     {
         Gate::authorize('view', $case);
         abort_unless(in_array($kind, ['document', 'manifest', 'prelapide'], true), 404);
-        $customManifest = $kind === 'manifest' && $case->manifest_layout;
-        $data = $customManifest ? app(ManifestEditor::class)->pdfData($case) : app(DocumentData::class)->assemble($case, $kind);
+        $editor = app(ManifestEditor::class);
+        $editor->kind = $kind;
+        $customManifest = in_array($kind, ['manifest', 'prelapide'], true) && $case->{$editor->field()};
+        $data = $customManifest ? $editor->pdfData($case) : app(DocumentData::class)->assemble($case, $kind);
         if ($kind === 'manifest' && ! $customManifest) {
             $data['layout'] = app(ManifestLayout::class)->fit($data);
         }
+        if ($kind === 'prelapide' && ! $customManifest) {
+            $data['layout'] = app(PrelapideLayout::class)->scene($data);
+        }
         $view = match ($kind) {
-            'manifest' => $customManifest ? 'pdf.manifest-editor' : 'pdf.manifest', 'prelapide' => 'pdf.prelapide', default => 'pdf.'.$case->type->value
+            'manifest' => $customManifest ? 'pdf.manifest-editor' : 'pdf.manifest', 'prelapide' => $customManifest ? 'pdf.manifest-editor' : 'pdf.prelapide', default => 'pdf.'.$case->type->value
         };
         $expectedPages = $kind === 'document' && $case->transport_enabled ? 4 : 1;
         $cremationRequest = $kind === 'document';
         $fontSizes = match ($kind) {
             'document' => [9.2, 8.8, 8.4, 8.0, 7.6, 7.2],
-            'prelapide' => [44, 36, 28, 22, 18, 14, 10],
             default => [null],
         };
         foreach ($fontSizes as $fontSize) {
             if ($cremationRequest) {
                 $data['request']['font_size'] = $fontSize;
-            }
-            if ($kind === 'prelapide') {
-                $data['font_size'] = $fontSize;
             }
             $pdf = Pdf::loadView($view, ['data' => $data])->setPaper('a4', in_array($kind, ['manifest', 'prelapide'], true) ? 'landscape' : 'portrait')
                 ->setOptions(['defaultFont' => $cremationRequest ? 'DejaVu Sans' : 'DejaVu Serif', 'isRemoteEnabled' => false, 'isPhpEnabled' => false, 'isJavascriptEnabled' => false]);

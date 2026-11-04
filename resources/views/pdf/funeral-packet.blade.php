@@ -63,6 +63,7 @@ utilizzando il seguente personale dipendente, tutti assunti con contratto di lav
 @include('pdf.cremation-staff')
 
 <p class="declaration">Il sig. (4) <strong>{{ $r['assigned_operator']['name'] }}</strong>, operatore funebre incaricato del trasporto con mansione di necroforo, provvederà a eseguire quanto stabilito dall’art. 9 comma 1 della L.R. 12/2001, modificata dalla L.R. 7/2013 e da quanto disposto dal Regolamento Comunale di Polizia Mortuaria, in veste di incaricato di pubblico servizio ai sensi dell’art. 358 C.P.; in particolare provvederà a verificare l’identità del cadavere, che il feretro sia confezionato in modo corretto, che il carro funebre e il personale utilizzati siano quelli autorizzati; inoltre apporrà i sigilli di chiusura al feretro e redigerà l’apposito verbale.</p>
+@include('pdf.cremation-ashes')
 <p class="strong section">Allega alla presente:</p>
 <p>- Autorizzazione di seppellimento rilasciata dall’Ufficiale di Stato Civile;<br>
 - Nulla osta del Sanitario della A.S.L.;<br>

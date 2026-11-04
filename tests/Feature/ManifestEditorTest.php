@@ -7,6 +7,7 @@ use App\Filament\Resources\FuneralCaseResource;
 use App\Models\AuditEvent;
 use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
+use App\Models\Symbol;
 use App\Models\User;
 use App\Services\PdfGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -146,5 +147,90 @@ class ManifestEditorTest extends TestCase
         $this->case->forceDelete();
         Storage::disk('local')->assertMissing([$first, $second]);
         $this->assertSame(0, AuditEvent::where('event', 'manifest_layout_saved')->count());
+    }
+
+    public function test_shapes_symbols_frames_and_private_uploads_round_trip(): void
+    {
+        $symbol = Symbol::create(['title' => 'Simbolo', 'image_path' => 'frames/sample.jpg']);
+        $this->actingAs($this->case->owner);
+        $this->get(route('private.symbol', $symbol))->assertOk();
+        $upload = $this->post(route('private.manifest-editor.upload', $this->case), ['image' => UploadedFile::fake()->image('extra.png', 200, 100)])->assertOk()->json();
+        $this->get($upload['url'])->assertOk();
+        $payload = $this->payload();
+        $base = $payload['scene']['elements'][0];
+        $payload['scene']['backgroundAsset'] = 'frame_'.$this->case->manifest_template_id;
+        foreach (['rect', 'ellipse', 'triangle'] as $shape) {
+            $payload['scene']['elements'][] = array_replace($base, ['id' => $shape, 'type' => $shape, 'x' => 0, 'y' => 0, 'width' => 800, 'height' => 550, 'fill' => 'transparent', 'stroke' => '#174f37', 'strokeWidth' => 3]);
+        }
+        foreach (['symbol_'.$symbol->id, $upload['key']] as $key) {
+            $payload['scene']['elements'][] = array_replace($base, ['id' => $key, 'type' => 'image', 'asset' => $key, 'x' => 40, 'y' => 200, 'width' => 100, 'height' => 100]);
+        }
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
+        $saved = $this->case->fresh()->manifest_layout;
+        $this->assertStringStartsWith('data:image/', $saved['assets'][$upload['key']]);
+        $this->assertStringStartsWith('data:image/', $saved['assets']['symbol_'.$symbol->id]);
+        $this->assertSame($payload['scene'], $saved['scene']);
+        $symbol->delete();
+        $new = $this->payload();
+        $this->postJson(route('private.manifest-editor.save', $this->case), $new)->assertOk();
+        $this->actingAs(User::factory()->create());
+        $this->get($upload['url'])->assertForbidden();
+        $this->post(route('private.manifest-editor.upload', $this->case), ['image' => UploadedFile::fake()->image('other.png')])->assertForbidden();
+    }
+
+    public function test_prelapide_is_editable_and_independent_from_manifest(): void
+    {
+        $symbol = Symbol::create(['title' => 'Primo', 'image_path' => 'frames/sample.jpg', 'sort_order' => 0]);
+        $this->get(FuneralCaseResource::getUrl('prelapide-editor', ['record' => $this->case]))->assertOk()->assertSee('Editor prelapide');
+        $manifest = $this->payload();
+        $this->postJson(route('private.manifest-editor.save', $this->case), $manifest)->assertOk();
+        $manifestRevision = $this->case->fresh()->manifest_layout['revision'];
+        $url = route('private.manifest-editor.show', [$this->case, 'kind' => 'prelapide']);
+        $data = $this->getJson($url)->assertOk()->json();
+        $this->assertContains('symbol', array_column($data['scene']['elements'], 'id'));
+        $this->assertContains('border_0', array_column($data['scene']['elements'], 'id'));
+        $input = ['scene' => $data['scene'], 'source' => $data['source'], 'revision' => null, 'image' => $manifest['image'], 'generate' => true];
+        $this->postJson($data['saveUrl'], $input)->assertOk();
+        $saved = $this->case->fresh();
+        $this->assertNotNull($saved->prelapide_layout);
+        $this->assertSame($manifestRevision, $saved->manifest_layout['revision']);
+        $doc = $saved->documents()->where('kind', 'prelapide')->sole();
+        $this->assertSame($saved->prelapide_layout['revision'], $doc->snapshot['editor_revision']);
+        $this->deleteJson($data['resetUrl'], ['revision' => $saved->prelapide_layout['revision']])->assertOk();
+        $this->assertNull($saved->fresh()->prelapide_layout);
+        Storage::disk('local')->assertExists($doc->file_path);
+    }
+
+    public function test_foreign_assets_and_malformed_shape_styles_are_rejected(): void
+    {
+        $payload = $this->payload();
+        $payload['scene']['elements'][0] = array_replace($payload['scene']['elements'][0], ['type' => 'image', 'asset' => 'upload_999999']);
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertUnprocessable();
+        $payload = $this->payload();
+        $payload['scene']['elements'][0] = array_replace($payload['scene']['elements'][0], ['type' => 'rect', 'fill' => 'url(https://example.com/image)', 'strokeWidth' => -1]);
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertUnprocessable();
+        $payload = $this->payload();
+        $payload['scene']['backgroundAsset'] = 'frame_999999';
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertUnprocessable();
+        $this->assertSame([], Storage::disk('local')->files('manifest-editor'));
+    }
+
+    public function test_selected_frame_remains_frozen_until_explicit_refresh(): void
+    {
+        $frame = ManifestTemplate::create(['title' => 'Alternativa', 'image_path' => 'frames/sample.jpg']);
+        $key = 'frame_'.$frame->id;
+        $payload = $this->payload();
+        $payload['scene']['backgroundAsset'] = $key;
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
+        $frozen = $this->case->fresh()->manifest_layout['assets'][$key];
+        $file = UploadedFile::fake()->image('new.png', 100, 70);
+        Storage::disk('local')->put('frames/changed.png', file_get_contents($file->getRealPath()));
+        $frame->update(['image_path' => 'frames/changed.png']);
+        $this->postJson(route('private.manifest-editor.save', $this->case), $this->payload())->assertOk();
+        $this->assertSame($frozen, $this->case->fresh()->manifest_layout['assets'][$key]);
+        $payload = $this->payload();
+        $payload['freshAssets'] = [$key];
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
+        $this->assertNotSame($frozen, $this->case->fresh()->manifest_layout['assets'][$key]);
     }
 }

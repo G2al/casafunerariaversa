@@ -10,6 +10,9 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', ActiveUser::class])->prefix('private')->name('private.')->group(function () {
+    Route::get('symbols/{symbol}', [ManifestEditorController::class, 'symbol'])->name('symbol');
+    Route::post('cases/{case}/editor-upload', [ManifestEditorController::class, 'upload'])->name('manifest-editor.upload');
+    Route::get('cases/{case}/editor-attachments/{attachment}', [ManifestEditorController::class, 'attachment'])->name('manifest-editor.attachment');
     Route::get('manifest-editor/fonts/{font}', [ManifestEditorController::class, 'font'])->name('manifest-editor.font');
     Route::get('cases/{case}/manifest-editor', [ManifestEditorController::class, 'show'])->name('manifest-editor.show');
     Route::post('cases/{case}/manifest-editor', [ManifestEditorController::class, 'save'])->name('manifest-editor.save');

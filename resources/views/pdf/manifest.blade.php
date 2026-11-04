@@ -8,8 +8,9 @@ body { margin: 0; font-family: 'DejaVu Serif', serif; }
 {{-- Le cornici devono essere A4 landscape: contain conserva integralmente proporzioni e bordi. --}}
 <div class="background" style="left:{{ $data['layout']['page']['margin'] }}pt;top:{{ $data['layout']['page']['margin'] }}pt;width:{{ $data['layout']['page']['width'] }}pt;height:{{ $data['layout']['page']['height'] }}pt;text-align:center;line-height:0"><img src="{{ $data['background'] }}" style="max-width:{{ $data['layout']['page']['width'] }}pt;max-height:{{ $data['layout']['page']['height'] }}pt;width:auto;height:auto"></div>
 @if($data['photo'])<img src="{{ $data['photo'] }}" style="position:absolute;left:{{ $data['layout']['photo']['x'] }}pt;top:{{ $data['layout']['photo']['y'] }}pt;width:{{ $data['layout']['photo']['width'] }}pt;height:{{ $data['layout']['photo']['height'] }}pt">@endif
+<div style="position:absolute;left:{{ $data['layout']['separator']['x'] }}pt;top:{{ $data['layout']['separator']['y'] }}pt;width:{{ $data['layout']['separator']['width'] }}pt;border-top:1pt solid black"></div>
 @foreach($data['layout']['lines'] as $line)
-<div class="line" style="left:{{ $line['x'] }}pt; top:{{ $line['y'] }}pt; width:{{ $line['width'] }}pt; font-size:{{ $line['size'] }}pt; font-weight:{{ $line['bold'] ? 'bold' : 'normal' }}">{{ $line['text'] }}</div>
+<div class="line" style="left:{{ $line['x'] }}pt; top:{{ $line['y'] }}pt; width:{{ $line['width'] }}pt; font-family:'{{ $line['fontFamily'] ?? 'DejaVu Serif' }}';color:{{ $line['color'] ?? '#000000' }};font-size:{{ $line['size'] }}pt; font-weight:{{ $line['bold'] ? 'bold' : 'normal' }}">{{ $line['text'] }}</div>
 @endforeach
 @if($data['logo'])<img src="{{ $data['logo'] }}" style="position:absolute;left:{{ $data['layout']['logo']['x'] }}pt;top:{{ $data['layout']['logo']['y'] }}pt;width:{{ $data['layout']['logo']['width'] }}pt;height:{{ $data['layout']['logo']['height'] }}pt">@endif
 </body></html>

@@ -153,7 +153,7 @@ class DemoFuneralCaseSeederTest extends TestCase
         $this->assertSame(1, FuneralVehicle::count());
         $this->assertSame(1, ManifestTemplate::count());
         $this->assertSame('Modifica manuale', $case->fresh()->first_name);
-        $this->assertFalse($case->fresh()->transport_enabled);
+        $this->assertTrue($case->fresh()->transport_enabled); // Il form non propone più la scelta del trasporto.
         $this->assertFalse($case->fresh()->prior_transfer_enabled);
         $this->assertSame('77.00', $case->fresh()->transport_distance_km);
         $this->assertSame([$member->id], $case->fresh()->transportStaff->modelKeys());

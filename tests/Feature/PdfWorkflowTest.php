@@ -111,11 +111,11 @@ class PdfWorkflowTest extends TestCase
         $case->update(['manifest_template_id' => $frame->id, 'first_name' => 'Persona con un nome composto particolarmente lungo', 'last_name' => 'Cognome dimostrativo con più elementi', 'manifest_options' => ['family_text' => str_repeat('Familiari e amici partecipano al ricordo della persona cara. ', 8)]]);
         $pdf = app(PdfGenerator::class)->generate($case->fresh(), 'manifest');
         $layout = $pdf->snapshot['layout'];
-        $nameLines = array_filter($layout['lines'], fn ($line) => $line['bold'] && $line['size'] > 18);
+        $nameLines = array_filter($layout['lines'], fn ($line) => $line['key'] === 'name');
         $this->assertNotEmpty($nameLines);
         $this->assertLessThanOrEqual(2, count($nameLines));
         foreach ($layout['lines'] as $line) {
-            $this->assertLessThanOrEqual($layout['area']['y'] + $layout['area']['h'], $line['y'] + $line['size'] * 1.5);
+            $this->assertLessThanOrEqual(595.28, $line['y'] + $line['size'] * 1.5);
         }
         $this->artifact('manifest-long', Storage::disk('local')->get($pdf->file_path));
         $case->update(['manifest_options' => ['family_text' => str_repeat('Testo eccessivo. ', 500)]]);
@@ -123,7 +123,7 @@ class PdfWorkflowTest extends TestCase
         app(PdfGenerator::class)->generate($case->fresh(), 'manifest');
     }
 
-    public function test_photo_logo_and_text_share_one_center_and_fit_without_overlaps(): void
+    public function test_fixed_template_keeps_photo_and_logo_left_and_text_in_safe_area(): void
     {
         Storage::fake('local');
         $this->actingAs(User::factory()->create());
@@ -151,20 +151,21 @@ class PdfWorkflowTest extends TestCase
         $this->assertEqualsWithDelta(0.8, $layout['photo']['width'] / $layout['photo']['height'], 0.001);
         $this->assertEqualsWithDelta(3.75, $layout['logo']['width'] / $layout['logo']['height'], 0.001);
         foreach (['photo', 'logo'] as $image) {
-            $this->assertEqualsWithDelta($center, $layout[$image]['x'] + $layout[$image]['width'] / 2, 0.001);
+            $this->assertLessThan($area['x'], $layout[$image]['x'] + $layout[$image]['width']);
         }
-        $previousBottom = $layout['photo']['y'] + $layout['photo']['height'];
+        $previousBottom = $area['y'];
         foreach ($layout['lines'] as $line) {
             $this->assertEqualsWithDelta($center, $line['x'] + $line['width'] / 2, 0.001);
             $this->assertGreaterThanOrEqual($previousBottom, $line['y']);
             $this->assertNotSame('14:30', trim($line['text']));
             $previousBottom = $line['y'] + $line['size'] * 1.5;
         }
-        $this->assertGreaterThanOrEqual($previousBottom, $layout['logo']['y']);
+        $this->assertSame(25, $layout['logo']['x']);
+        $this->assertContains('facebook', array_column($layout['lines'], 'key'));
         $text = implode(' ', array_column($layout['lines'], 'text'));
         $this->assertStringContainsString('14:00.', $text);
         $this->assertStringNotContainsString('14:00 .', $text);
-        $this->assertLessThanOrEqual($area['y'] + $area['h'], $layout['logo']['y'] + $layout['logo']['height']);
+        $this->assertLessThanOrEqual(595.28, $layout['logo']['y'] + $layout['logo']['height']);
         $this->artifact('manifest-photo-logo', Storage::disk('local')->get($pdf->file_path));
     }
 

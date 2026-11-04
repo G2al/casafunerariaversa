@@ -1,4 +1,4 @@
-# Editor live del manifesto
+# Editor live di manifesto e prelapide
 
 ## Uso
 
@@ -10,11 +10,15 @@ L'editor Fabric.js parte dalla disposizione automatica e permette di:
 - ridimensionare gli elementi e modificare posizione/dimensioni dal pannello;
 - modificare il testo direttamente con doppio clic o dal pannello;
 - cambiare carattere, dimensione, colore, grassetto, corsivo, allineamento e interlinea;
-- aggiungere testi e reinserire foto/logo disponibili, rimuovere elementi e cambiare ordine dei livelli;
+- aggiungere testi, foto/logo, simboli dal catalogo e ulteriori immagini JPEG/PNG/WebP;
+- ingrandire i testi dagli angoli, compreso quello inferiore sinistro, come le foto;
+- creare rettangoli, cerchi/ovali e triangoli con riempimento pieno o trasparente, colore e spessore del bordo;
+- adattare immagini e forme al foglio, portarli sul fondo e creare cornici personalizzate;
+- rimuovere elementi e cambiare ordine dei livelli;
 - bloccare posizione/dimensioni, usare zoom, annulla/ripeti e frecce della tastiera (Shift: 10 punti);
 - salvare e riaprire la composizione, ottenere anteprima PDF oppure salvare una nuova versione nello storico.
 
-La cornice rimane uno sfondo fisso: le immagini decorative incorporate nella cornice non sono elementi separati. Per modificarle occorre scegliere un'altra cornice.
+La cornice si può sostituire direttamente dalla barra dell’editor, mantenendo gli altri elementi. Le figure incorporate nello sfondo non sono separabili. Il cambio vale per questa composizione; non cambia la cornice scelta nella scheda della pratica.
 
 **Salva composizione** memorizza soltanto il progetto. **Anteprima PDF** salva prima la composizione corrente e apre il PDF senza aggiungere una versione allo storico. **Salva e scarica PDF** salva il progetto e archivia una nuova versione. Sono disponibili al massimo 40 elementi.
 
@@ -36,8 +40,8 @@ Il testo rimane modificabile nel progetto dell'editor. Nel PDF di questa prima v
 
 - Stesse policy delle pratiche: operatore sulle proprie pratiche, amministratore su tutte; editor disabilitato per le pratiche nel cestino.
 - Salvataggi con CSRF, verifica proprietario, lock database e controllo revisione/dati sorgenti. Due finestre non si sovrascrivono silenziosamente.
-- Schema applicativo limitato a testo e immagini foto/logo; niente HTML, script o URL esterni nel progetto ricevuto. Dimensioni, colori, font, quantità e immagine finale vengono validati lato server.
-- File generati in storage privato `manifest-editor/`; immagini/font non vengono inviati a servizi esterni dall'editor. Le immagini di origine della composizione sono conservate nel progetto, per mantenerlo riapribile anche dopo una modifica alla pratica.
+- Schema applicativo limitato a testi, immagini autorizzate e forme; niente HTML, script o URL esterni nel progetto ricevuto. Dimensioni, colori, font, quantità e immagine finale vengono validati lato server.
+- File generati in storage privato `manifest-editor/`; immagini aggiuntive private in `editor-uploads/` (massimo 50 per pratica, 10 MB ciascuna prima dell’ottimizzazione); immagini/font non vengono inviati a servizi esterni dall'editor. Le immagini di origine della composizione sono conservate nel progetto, per mantenerlo riapribile anche dopo una modifica alla pratica.
 - Cestino conserva progetto e immagini. L'eliminazione definitiva del fascicolo rimuove tutte le immagini delle revisioni, oltre ai PDF e agli altri allegati. Restano le procedure di ritentativo per eventuali errori del disco.
 - Audit di salvataggio/ripristino con autore e revisione, senza duplicare i testi nei messaggi di audit.
 
@@ -59,6 +63,18 @@ Se gli asset compilati vengono caricati dal computer di sviluppo, non è necessa
 
 Per i test PHP eseguire prima `php artisan optimize:clear`: la suite richiede SQLite in memoria. I controlli browser usano un database SQLite separato e dati inventati.
 
-## Verifiche
+## Verifiche versione 3 novembre
 
 Suite completa: **81 test superati, 1072 asserzioni**. Controllati nel browser Edge modifica di font/colore, annulla/ripeti, ridimensionamento e trascinamento della foto, salvataggio, riapertura, PDF e layout desktop/mobile. Nessun errore JavaScript nella prova conclusiva. PDF A4 orizzontale di una pagina, con immagine incorporata verificata identica a quella salvata tramite SHA256. Pint, compilazione Blade e build Vite riusciti; installazione riprodotta dal lockfile, audit npm senza vulnerabilità rilevate. Migrazione applicata al database locale con verifica di dati preesistenti e PDF storici invariati.
+
+## Aggiornamento 4 novembre 2026
+
+**Simboli** è una risorsa amministrativa in Risorse del servizio: titolo, immagine, ordine, attivazione, modifica e cancellazione singola/multipla. Gli operatori usano il catalogo sulle proprie pratiche. Le immagini aggiuntive appartengono alla singola pratica e non sono accessibili agli altri operatori.
+
+Il modello automatico del manifesto ha postazioni fisse: foto a sinistra, introduzione, nome maiuscolo, coniuge quando disponibile, età, familiari, separatore, camera ardente, trasferimento, rito, ringraziamento e data. Logo fisso in basso a sinistra e frase Facebook su due righe. Il testo si adatta alla propria postazione; non inventa informazioni mancanti. Per applicare questa nuova base a un progetto personalizzato precedente usare **Ripristina automatico**.
+
+**Modifica prelapide live** apre lo stesso editor con un progetto separato: doppio bordo rettangolare, nome in alto, date N./D., primo simbolo attivo secondo ordine/ID a sinistra e logo in basso a destra. Senza simboli il modello resta utilizzabile; si può caricare il primo nella nuova risorsa. La prelapide automatica e quella modificabile condividono la disposizione iniziale. Le modifiche ai due progetti non si sovrascrivono. I PDF storici restano immutabili.
+
+Migrazione aggiuntiva `2026_11_04_000100_extend_graphic_editor`: progetto prelapide, catalogo simboli e immagini aggiuntive. Non richiede dipendenze Composer o un nuovo collegamento storage. Dopo il caricamento del codice eseguire `php artisan optimize:clear`, `php artisan migrate --force`, `php artisan filament:assets`, `php artisan optimize`. Ricompilare gli asset localmente con `npm ci` e `npm run build`, quindi caricare **tutta** `public/build` (manifest e assets) sul server.
+
+Verifiche aggiornamento 4 novembre: suite completa **86 test, 1120 asserzioni**, build riprodotta da lockfile, Pint e Blade superati; audit npm produzione senza vulnerabilità. Prova browser con scala del testo dagli angoli, forme/riempimento/bordi/foglio/livelli, simboli, immagini aggiuntive, cambio cornice, salvataggio/riapertura e progetti separati su desktop/mobile. PDF dei due editor: una pagina A4 orizzontale, immagine incorporata identica al salvataggio (SHA256). Migrazione locale verificata senza variazioni di dati preesistenti e PDF storici.

@@ -3,6 +3,7 @@
 namespace App\Filament\Support;
 
 use App\Enums\CaseType;
+use App\Enums\IdentityDocumentType;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Placeholder;
@@ -62,6 +63,17 @@ class FuneralPacketForm
                 self::text('ashes_address', 'Indirizzo completo di destinazione delle ceneri'),
             ])->columns(['default' => 1, 'md' => 2]),
         ];
+    }
+
+    public static function familyDocument(): Section
+    {
+        return Section::make('Documento del familiare referente')->description('Questi estremi compilano il testimone a pagina 2 del documento.')->schema([
+            Select::make('cremation_details.contact_document_type')->label('Tipologia di documento')->options(IdentityDocumentType::class),
+            self::text('contact_document_number', 'Numero di documento'),
+            self::text('contact_document_issuer', 'Ente di rilascio'),
+            self::date('contact_document_expires_at', 'Scadenza')->afterOrEqual('cremation_details.contact_document_issued_at'),
+            self::date('contact_document_issued_at', 'Emissione')->maxDate(today()),
+        ])->columns(2)->columnSpanFull();
     }
 
     public static function priorTransfer(): Section

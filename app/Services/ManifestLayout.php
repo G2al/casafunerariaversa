@@ -26,64 +26,48 @@ class ManifestLayout
         $metrics = $pdf->getFontMetrics();
         $normal = $metrics->getFont('DejaVu Serif', 'normal');
         $bold = $metrics->getFont('DejaVu Serif', 'bold');
-        $nameSize = 44;
-        while ($nameSize > 22 && count($this->wrap($data['name'], $bold, $nameSize, $area['w'], $metrics)) > 2) {
-            $nameSize -= 2;
-        }
-        // Un solo asse centrale per fotografia, intestazione, annuncio e firma agenzia.
-        // Ogni blocco definisce dimensione, peso, respiro successivo e larghezza relativa.
+        // Postazioni fisse: la foto rimane a sinistra, i testi nella zona libera della cornice.
         $blocks = [
-            [$data['intro'], 15, false, 9, 1.0],
-            [$data['name'], $nameSize, true, 2, 1.0],
-            [$data['age'] !== null ? 'di anni '.$data['age'] : '', 17, true, 16, 1.0],
-            [$data['family_text'], 16, false, 14, 0.94],
-            [$data['viewing'], 14.5, false, 10, 0.94],
-            [$data['transfer'], 14.5, false, 10, 0.94],
-            [$data['ceremony'], 14.5, false, 18, 0.94],
-            [$data['closing'], 12.5, true, 8, 0.94],
-            [$data['place_date'], 10, false, 6, 1.0],
-            [trim(($settings['trade_name'] ?? $settings['legal_name'] ?? '').' '.($settings['phone'] ?? '').' '.($settings['email'] ?? '')), 10, false, 8, 0.94],
+            ['intro', $data['intro'], 0, .065, 15, false, 'DejaVu Serif'],
+            ['name', mb_strtoupper($data['name']), .075, .17, 52, true, 'DejaVu Sans'],
+            ['spouse', mb_strtoupper($data['spouse_line'] ?? ''), .245, .045, 13, true, 'DejaVu Sans'],
+            ['age', $data['age'] !== null ? 'DI ANNI '.$data['age'] : '', .29, .045, 17, true, 'DejaVu Sans'],
+            ['family', $data['family_text'], .345, .10, 17, false, 'DejaVu Serif'],
+            ['viewing', $data['viewing'], .46, .14, 16, false, 'DejaVu Serif'],
+            ['transfer', $data['transfer'], .61, .09, 15, false, 'DejaVu Serif'],
+            ['ceremony', $data['ceremony'], .71, .11, 16, false, 'DejaVu Serif'],
+            ['closing', $data['closing'], .83, .06, 14, true, 'DejaVu Serif'],
+            ['date', $data['place_date'], .90, .045, 10, false, 'DejaVu Serif'],
         ];
-        $portraitSize = $data['photo'] ? $this->imageSize($data['photo'], 66, 84) : null;
-        $logoSize = $data['logo'] ? $this->imageSize($data['logo'], 80, 26) : null;
-        for ($step = 0; $step <= 9; $step++) {
-            $scale = 1 - $step * 0.04;
-            $y = $portraitSize ? ($portraitSize['height'] + 14) * $scale : 0;
-            $lines = [];
-            $gap = 0;
-            foreach ($blocks as $blockIndex => [$text, $size, $isBold, $spaceAfter, $relativeWidth]) {
-                if (trim($text) === '') {
-                    continue;
-                }
-                $y += $gap;
-                $size *= $scale;
-                $font = $isBold ? $bold : $normal;
-                $lineWidth = $area['w'] * $relativeWidth;
-                foreach ($this->wrap($text, $font, $size, $lineWidth, $metrics) as $line) {
-                    $lines[] = ['key' => ['intro', 'name', 'age', 'family', 'viewing', 'transfer', 'ceremony', 'closing', 'date', 'agency'][$blockIndex], 'text' => $line, 'x' => $area['x'] + ($area['w'] - $lineWidth) / 2, 'y' => $y, 'width' => $lineWidth, 'size' => $size, 'bold' => $isBold];
-                    $y += $size * 1.5;
-                }
-                $gap = $spaceAfter * $scale;
+        $lines = [];
+        foreach ($blocks as [$key, $text, $slot, $slotHeight, $size, $isBold, $family]) {
+            if (blank($text)) {
+                continue;
             }
-            $logoY = $y + $gap;
-            $contentHeight = $logoSize ? $logoY + $logoSize['height'] * $scale : $y;
-            if ($contentHeight <= $area['h']) {
-                // Equilibra lo spazio sopra e sotto l'intera composizione, senza buchi quando manca la foto.
-                $offset = $area['y'] + ($area['h'] - $contentHeight) / 2;
-                foreach ($lines as &$line) {
-                    $line['y'] += $offset;
+            $font = $metrics->getFont($family, $isBold ? 'bold' : 'normal');
+            while (true) {
+                $wrapped = $this->wrap($text, $font, $size, $area['w'], $metrics);
+                if (count($wrapped) * $size * 1.5 <= $area['h'] * $slotHeight && ($key !== 'name' || count($wrapped) <= 2)) {
+                    break;
                 }
-                unset($line);
-
-                return [
-                    'area' => $area, 'page' => $page, 'lines' => $lines, 'scale' => $scale,
-                    'content_y' => $offset, 'content_height' => $contentHeight,
-                    'photo' => $portraitSize ? $this->centerImage($portraitSize, $area, $offset, $scale) : null,
-                    'logo' => $logoSize ? $this->centerImage($logoSize, $area, $offset + $logoY, $scale) : null,
-                ];
+                $size -= .5;
+                if ($size < 6) {
+                    throw ValidationException::withMessages(['manifest' => 'Il testo supera il blocco '.$key.'. Accorcialo oppure usa l’editor live.']);
+                }
+            }
+            foreach ($wrapped as $index => $line) {
+                $lines[] = ['key' => $key, 'text' => $line, 'x' => $area['x'], 'y' => $area['y'] + $area['h'] * $slot + $index * $size * 1.5, 'width' => $area['w'], 'size' => $size, 'bold' => $isBold, 'fontFamily' => $family, 'color' => '#000000'];
             }
         }
-        throw ValidationException::withMessages(['manifest' => 'Il testo supera lo spazio disponibile. Accorcia l’annuncio o ometti una sezione facoltativa.']);
+        foreach (['Si ringraziano anticipatamente tutti coloro che scriveranno con affetto un', 'pensiero di ricordo su Facebook: necrologiagroaversano'] as $index => $text) {
+            $lines[] = ['key' => 'facebook', 'text' => $text, 'x' => $area['x'], 'y' => 546 + $index * 13.5, 'width' => $area['w'], 'size' => 9, 'bold' => false, 'fontFamily' => 'DejaVu Sans', 'color' => '#245994'];
+        }
+        $portrait = $data['photo'] ? $this->imageSize($data['photo'], 160, 160) : null;
+        $logo = $data['logo'] ? $this->imageSize($data['logo'], 140, 38) : null;
+
+        return ['separator' => ['x' => $area['x'], 'y' => $area['y'] + $area['h'] * .45, 'width' => $area['w'], 'height' => 1], 'area' => $area, 'page' => $page, 'lines' => $lines, 'scale' => 1, 'content_y' => $area['y'], 'content_height' => $area['h'],
+            'photo' => $portrait ? ['x' => 30 + (160 - $portrait['width']) / 2, 'y' => 38, 'width' => $portrait['width'], 'height' => $portrait['height']] : null,
+            'logo' => $logo ? ['x' => 25, 'y' => 540, 'width' => $logo['width'], 'height' => $logo['height']] : null];
     }
 
     private function imageSize(string $uri, float $maxWidth, float $maxHeight): array

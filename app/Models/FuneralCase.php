@@ -30,7 +30,7 @@ class FuneralCase extends Model
 
     protected function casts(): array
     {
-        $casts = ['type' => CaseType::class, 'status' => CaseStatus::class, 'family_members' => 'array', 'manifest_options' => 'array', 'manifest_layout' => 'array', 'registered_at' => 'datetime', 'death_cause' => 'encrypted'];
+        $casts = ['type' => CaseType::class, 'status' => CaseStatus::class, 'family_members' => 'array', 'manifest_options' => 'array', 'manifest_layout' => 'array', 'prelapide_layout' => 'array', 'registered_at' => 'datetime', 'death_cause' => 'encrypted'];
         $casts += ['transport_enabled' => 'boolean', 'prior_transfer_enabled' => 'boolean', 'prior_transfer_date' => 'date', 'transport_distance_km' => 'decimal:2', 'cremation_details' => 'array'];
         foreach (config('funeral.sections') as $fields) {
             foreach (array_keys($fields) as $field) {

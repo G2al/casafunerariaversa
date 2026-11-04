@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\CaseType;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
+use App\Models\Symbol;
 use Illuminate\Validation\ValidationException;
 
 class DocumentData
@@ -34,7 +35,7 @@ class DocumentData
     public function assemble(FuneralCase $case, string $kind): array
     {
         if ($kind === 'prelapide') {
-            return ['code' => $case->code, 'first_name' => $case->first_name, 'last_name' => $case->last_name, 'birth_date' => $case->birth_date?->format('d/m/Y'), 'death_date' => $case->death_date?->format('d/m/Y')];
+            return ['symbol' => app(PrivateImage::class)->dataUri(Symbol::where('is_active', true)->orderBy('sort_order')->orderBy('id')->value('image_path')), 'logo' => app(PrivateImage::class)->dataUri(CompanySettings::current()['logo_path'] ?? null) ?? 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png'))), 'background' => null, 'photo' => null, 'code' => $case->code, 'first_name' => $case->first_name, 'last_name' => $case->last_name, 'birth_date' => $case->birth_date?->format('d/m/Y'), 'death_date' => $case->death_date?->format('d/m/Y')];
         }
         $missing = $kind === 'document' ? [] : $this->missing($case, $kind);
         if ($kind !== 'document' && $missing) {
@@ -54,6 +55,7 @@ class DocumentData
 
             return $data;
         }
+        $data['logo'] ??= 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png')));
         $case->loadMissing('manifestTemplate');
         if (! $case->manifestTemplate?->is_active) {
             throw ValidationException::withMessages(['manifest_template_id' => 'Seleziona una cornice attiva.']);
@@ -73,6 +75,7 @@ class DocumentData
         $transfer = ($options['show_transfer'] ?? true) && $case->transfer_place
             ? 'Il trasferimento avverrà presso '.$case->transfer_place.($case->transfer_at ? ' il '.$case->transfer_at->translatedFormat('d F Y').' alle '.$case->transfer_at->format('H:i') : '').'.' : '';
         $data += [
+            'spouse_line' => filled($case->spouse_name) ? trim(($case->marital_status ?? '').' '.$case->spouse_name) : '',
             'intro' => $intro, 'family_text' => $family, 'viewing' => $viewing, 'ceremony' => $ceremony, 'transfer' => $transfer,
             'closing' => ($options['show_closing'] ?? true) ? ($company['closing_text'] ?? '') : '',
             'place_date' => trim(($options['place'] ?? $case->ceremony_city ?? '').' · '.now()->translatedFormat('d F Y'), ' ·'),

@@ -235,6 +235,7 @@ class FuneralPacketData
         return [
             'identification' => [
                 'method' => ($details['identification_method'] ?? null),
+                'witness' => ['name' => $details['witness_name'] ?? null, 'relationship' => $details['witness_relationship'] ?? null, 'type' => $details['witness_document_type'] ?? null, 'number' => $details['witness_document_number'] ?? null, 'issuer' => $details['witness_document_issuer'] ?? null, 'issued_at' => $date('witness_document_issued_at'), 'expires_at' => $date('witness_document_expires_at')],
                 'witness_name' => $prefix === 'witness' ? ($details['witness_name'] ?? null) : null,
                 'witness_relationship' => $prefix === 'witness' ? ($details['witness_relationship'] ?? null) : null,
                 'type' => ($details[$prefix.'_document_type'] ?? null), 'number' => ($details[$prefix.'_document_number'] ?? null),
@@ -269,6 +270,14 @@ class FuneralPacketData
     private function details(FuneralCase $case): array
     {
         $details = $case->cremation_details ?? [];
+        if (collect(['type', 'number', 'issuer', 'issued_at', 'expires_at'])->contains(fn ($field) => filled($details['contact_document_'.$field] ?? null))) {
+            $type = IdentityDocumentType::tryFrom($details['contact_document_type'] ?? '');
+            $details['witness_name'] = trim($case->contact_first_name.' '.$case->contact_last_name);
+            $details['witness_relationship'] = $case->contact_relationship;
+            foreach (['type', 'number', 'issuer', 'issued_at', 'expires_at'] as $field) {
+                $details['witness_document_'.$field] = $field === 'type' ? ($type?->getLabel() ?? $details['contact_document_type'] ?? null) : ($details['contact_document_'.$field] ?? null);
+            }
+        }
         if ($case->identity_document_type) {
             $type = $case->identity_document_type;
             $details['identity_document_type'] = ($type instanceof IdentityDocumentType ? $type : IdentityDocumentType::from($type))->getLabel();
