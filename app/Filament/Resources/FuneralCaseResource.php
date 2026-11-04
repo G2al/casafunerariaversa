@@ -192,6 +192,8 @@ class FuneralCaseResource extends Resource
 
     public static function prepareFormData(array $data): array
     {
+        unset($data['manifest_layout'], $data['prelapide_layout']);
+
         $data['manifest_options'] = array_replace([
             'show_photo' => true, 'show_viewing' => true, 'show_ceremony' => true,
             'show_transfer' => true, 'show_closing' => true,

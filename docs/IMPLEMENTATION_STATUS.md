@@ -47,3 +47,10 @@ Cartelle simboli: nuova pagina cartelle nella voce Simboli, upload multiplo fino
 SVG nei simboli: upload singolo/multiplo, sanitizzazione con enshrined/svg-sanitize, blocco di contenuti attivi/risorse esterne, dimensioni SVG e supporto prelapide automatica/editor. Aggiornamenti patch Livewire/Symfony Mime; aggiornare vendor da composer.lock in produzione.
 
 Verifica SVG conclusiva: suite completa 95 test superati, 1206 asserzioni; upload singolo/multiplo misto SVG/PNG, sanitizzazione, PDF automatico e prove browser nei due editor (anteprima, inserimento ed esportazione). Pint e audit Composer superati, dati/PDF preesistenti invariati.
+
+
+## Correzione payload Livewire della pratica
+
+Log produzione: POST update rifiutato con PayloadTooLargeException, 2439 KB contro limite 1024 KB. I JSON manifest_layout/prelapide_layout, contenenti immagini base64, erano inclusi da Filament nel public data delle pagine modifica/visualizzazione tramite attributesToArray(). Esclusi dalla serializzazione generica del modello e da prepareFormData(); accessori diretti ed endpoint dedicati agli editor/PDF restano disponibili. Nessun aumento del limite Livewire e nessuna riscrittura dei progetti o PDF salvati.
+
+Regression test con circa 2,5 MB nei due progetti: stato Livewire inferiore a 100 KB nelle due pagine, Genera prelapide riesce in entrambe e il salvataggio della pratica conserva integralmente i due layout. Verifica mirata: 19 test superati, 202 asserzioni (CaseLivewirePayloadTest, ManifestEditorTest, FilamentWorkflowTest). Dopo la pubblicazione del codice pulire/rigenerare cache e ricaricare completamente le pagine già aperte, per rimuovere il vecchio snapshot dal browser.

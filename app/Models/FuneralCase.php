@@ -28,6 +28,10 @@ class FuneralCase extends Model
 
     protected $guarded = ['id', 'code', 'created_by'];
 
+    // Le composizioni includono immagini base64: restano sul server e vengono
+    // caricate soltanto dagli endpoint dedicati agli editor/PDF.
+    protected $hidden = ['manifest_layout', 'prelapide_layout'];
+
     protected function casts(): array
     {
         $casts = ['type' => CaseType::class, 'status' => CaseStatus::class, 'family_members' => 'array', 'manifest_options' => 'array', 'manifest_layout' => 'array', 'prelapide_layout' => 'array', 'registered_at' => 'datetime', 'death_cause' => 'encrypted'];
