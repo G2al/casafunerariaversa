@@ -81,8 +81,18 @@ Verifiche aggiornamento 4 novembre: suite completa **86 test, 1120 asserzioni**,
 
 ## Cartelle dei simboli
 
-La voce **Simboli** apre le cartelle. Creare una cartella, aprirla e usare **Carica più immagini** per importare fino a 100 immagini JPEG/PNG/WebP insieme, ottimizzate e salvate in privato. I titoli iniziali derivano dai nomi dei file. Dentro la cartella si possono modificare, disattivare o eliminare i simboli; dalla modifica si può cambiare cartella. Le cartelle piene sono protette dalla cancellazione.
+La voce **Simboli** apre le cartelle. Creare una cartella, aprirla e usare **Carica più immagini** per importare fino a 100 immagini JPEG/PNG/WebP/SVG insieme, ottimizzate e salvate in privato. I titoli iniziali derivano dai nomi dei file. Dentro la cartella si possono modificare, disattivare o eliminare i simboli; dalla modifica si può cambiare cartella. Le cartelle piene sono protette dalla cancellazione.
 
 Negli editor di manifesto e prelapide scegliere **Cartella simboli**, poi una immagine dalla galleria o dal selettore e premere **Inserisci**. La voce **Immagini della pratica** mostra gli upload aggiuntivi della pratica, separati dal catalogo condiviso.
 
 La migrazione `2026_11_04_000200_add_symbol_folders` raccoglie gli eventuali simboli preesistenti in **Generali**, conservando immagini, identificativi e composizioni salvate. Pubblicare codice e `public/build` aggiornati, poi eseguire `php artisan optimize:clear`, `php artisan migrate --force`, `php artisan optimize`.
+
+## SVG nei simboli
+
+Gli upload singoli e multipli nelle cartelle Simboli accettano anche SVG. Il file vettoriale viene sanitizzato prima del salvataggio, conservando trasparenza, tracciati, gradienti e immagini PNG/JPEG incorporate valide. Script, contenuti attivi e collegamenti a risorse esterne vengono rimossi. Le anteprime SVG restano private; lo stesso simbolo si può inserire nei due editor ed esportare nel PDF. Anche la prelapide automatica supporta il primo simbolo SVG.
+
+Dipendenza aggiunta: `enshrined/svg-sanitize` 1.1.1 ([progetto](https://github.com/darylldoyle/svg-sanitizer)). Aggiornati anche Livewire 4.4.8 e Symfony Mime 7.4.22 alle patch compatibili indicate dall’audit Composer. In produzione caricare anche `composer.json` e `composer.lock`, eseguire `composer install --no-dev --prefer-dist --optimize-autoloader`, `php artisan optimize:clear`, `php artisan optimize`. Nessuna nuova migrazione o modifica alla build JavaScript per questo aggiornamento SVG.
+
+Il PDF salvato dagli editor usa l’immagine esportata dal browser e conserva l’aspetto del simbolo. La prelapide automatica usa invece il supporto SVG di Dompdf: nel controllo visivo una sfumatura SVG è stata resa come colore pieno. Per SVG con effetti complessi usare la prelapide live e salvare la composizione prima di generare il PDF.
+
+Verifica SVG conclusiva: suite completa 95 test superati, 1206 asserzioni; upload singolo/multiplo misto SVG/PNG, sanitizzazione, PDF automatico e prove browser nei due editor (anteprima, inserimento ed esportazione). Pint e audit Composer superati, dati/PDF preesistenti invariati.

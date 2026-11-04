@@ -12,6 +12,15 @@ class OptimizedUpload
     public function store(UploadedFile $file, string $directory): string
     {
         $bytes = file_get_contents($file->getRealPath());
+        if ($directory === 'symbols' && strtolower($file->getClientOriginalExtension()) === 'svg') {
+            $clean = app(SafeSvg::class)->sanitize($bytes);
+            $path = $directory.'/'.Str::uuid().'.svg';
+            if (! Storage::disk('local')->put($path, $clean['bytes'])) {
+                throw ValidationException::withMessages(['upload' => 'Salvataggio SVG non riuscito.']);
+            }
+
+            return $path;
+        }
         app(PrivateIdentityDocument::class)->validateBytes($bytes, $file->getClientOriginalExtension());
         if ($file->getMimeType() === 'application/pdf') {
             $extension = 'pdf';

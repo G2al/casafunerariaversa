@@ -96,3 +96,6 @@ Per conservare lo storico, salvare insieme database, storage privato e APP_KEY o
 
 
 **Simboli organizzati in cartelle:** aprire Simboli, creare/aprire una cartella e usare Carica più immagini (fino a 100 per operazione). Negli editor scegliere prima la cartella e poi la miniatura da inserire. I simboli precedenti vengono raccolti in Generali. Migrazione `2026_11_04_000200_add_symbol_folders`; aggiornare anche `public/build`.
+
+
+**SVG nei simboli:** consentiti negli upload singoli e multipli delle cartelle, con sanitizzazione prima del salvataggio e anteprime private. Supportati negli editor e nelle relative esportazioni PDF. Aggiornare le dipendenze da `composer.lock` con `composer install --no-dev --prefer-dist --optimize-autoloader`, poi pulire/rigenerare le cache Artisan. Dettagli e limiti del PDF automatico in [MANIFEST_EDITOR.md](docs/MANIFEST_EDITOR.md).

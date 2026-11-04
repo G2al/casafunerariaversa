@@ -42,3 +42,8 @@ Verifica finale documenti anche con estremi del familiare parziali: ulteriori 17
 
 
 Cartelle simboli: nuova pagina cartelle nella voce Simboli, upload multiplo fino a 100 immagini, spostamento tra cartelle e protezione delle cartelle piene. Selezione cartella + galleria in entrambi gli editor. Migrazione incrementale con recupero dei simboli in Generali; 20 test mirati superati, 191 asserzioni.
+
+
+SVG nei simboli: upload singolo/multiplo, sanitizzazione con enshrined/svg-sanitize, blocco di contenuti attivi/risorse esterne, dimensioni SVG e supporto prelapide automatica/editor. Aggiornamenti patch Livewire/Symfony Mime; aggiornare vendor da composer.lock in produzione.
+
+Verifica SVG conclusiva: suite completa 95 test superati, 1206 asserzioni; upload singolo/multiplo misto SVG/PNG, sanitizzazione, PDF automatico e prove browser nei due editor (anteprima, inserimento ed esportazione). Pint e audit Composer superati, dati/PDF preesistenti invariati.

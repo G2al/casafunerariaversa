@@ -52,7 +52,10 @@ class ManifestEditorController extends Controller
         Gate::authorize('viewAny', FuneralCase::class);
         abort_unless($symbol->is_active || auth()->user()->isAdmin(), 404);
 
-        return response(app(PrivateImage::class)->dataUri($symbol->image_path) ? Storage::disk('local')->get($symbol->image_path) : '', 200, ['Content-Type' => Storage::disk('local')->mimeType($symbol->image_path), 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+        $uri = app(PrivateImage::class)->dataUri($symbol->image_path);
+        $svg = str_starts_with($uri, 'data:image/svg+xml;base64,');
+
+        return response($svg ? base64_decode(explode(',', $uri, 2)[1]) : Storage::disk('local')->get($symbol->image_path), 200, ['Content-Type' => $svg ? 'image/svg+xml' : Storage::disk('local')->mimeType($symbol->image_path), 'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline'; img-src data:; sandbox"]);
     }
 
     public function upload(Request $request, FuneralCase $case)

@@ -7,10 +7,12 @@ use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
 use App\Models\Symbol;
 use App\Services\OptimizedUpload;
+use App\Services\SafeSvg;
 use Filament\Forms\Components\FileUpload;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class PrivateUpload
 {
@@ -18,9 +20,18 @@ class PrivateUpload
     {
         return FileUpload::make($name)->label($label)->disk('local')->directory($directory)->visibility('private')
             ->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, $directory))
-            ->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->preventFilePathTampering()
-            ->rules([fn () => function (string $attribute, mixed $value, \Closure $fail) {
+            ->image()->acceptedFileTypes($directory === 'symbols' ? ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'] : ['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->preventFilePathTampering()
+            ->rules([fn () => function (string $attribute, mixed $value, \Closure $fail) use ($directory) {
                 if (! $value instanceof UploadedFile) {
+                    return;
+                }
+                if ($directory === 'symbols' && strtolower($value->getClientOriginalExtension()) === 'svg') {
+                    try {
+                        app(SafeSvg::class)->sanitize(file_get_contents($value->getRealPath()));
+                    } catch (ValidationException $error) {
+                        $fail($error->getMessage());
+                    }
+
                     return;
                 }
                 $info = @getimagesize($value->getRealPath());

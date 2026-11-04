@@ -26,7 +26,7 @@ class PrelapideLayout
         }
         foreach (['symbol' => [65, 220, 200, 260], 'logo' => [660, 510, 130, 46]] as $asset => [$x,$y,$w,$h]) {
             if ($data[$asset]) {
-                $info = getimagesizefromstring(base64_decode(explode(',', $data[$asset], 2)[1]));
+                $info = app(PrivateImage::class)->dimensions($data[$asset]);
                 $factor = min($w / $info[0], $h / $info[1]);
                 $elements[] = $base + ['id' => $asset, 'type' => 'image', 'asset' => $asset, 'x' => $x + ($w - $info[0] * $factor) / 2, 'y' => $y, 'width' => $info[0] * $factor, 'height' => $info[1] * $factor];
             }

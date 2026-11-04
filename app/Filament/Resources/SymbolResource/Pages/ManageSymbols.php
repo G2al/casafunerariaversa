@@ -43,7 +43,7 @@ class ManageSymbols extends ManageRecords
         return [Action::make('folders')->label('Tutte le cartelle')->icon('heroicon-o-folder')->url(SymbolFolderResource::getUrl()),
             CreateAction::make()->label('Nuovo simbolo')->mutateDataUsing(fn (array $data) => array_replace($data, ['symbol_folder_id' => $this->folderId])),
             Action::make('bulk_upload')->label('Carica più immagini')->icon('heroicon-o-arrow-up-tray')->schema([
-                FileUpload::make('images')->label('Immagini')->disk('local')->directory('symbols')->visibility('private')->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->multiple()->maxFiles(100)->required()->preventFilePathTampering()->storeFileNamesIn('names')->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, 'symbols')),
+                FileUpload::make('images')->label('Immagini')->disk('local')->directory('symbols')->visibility('private')->image()->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'])->maxSize(10240)->multiple()->maxFiles(100)->required()->preventFilePathTampering()->storeFileNamesIn('names')->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, 'symbols')),
             ])->action(function (array $data) {
                 app(ImportSymbols::class)->import(SymbolFolder::findOrFail($this->folderId), $data['images'], $data['names'] ?? []);
                 Notification::make()->success()->title('Immagini caricate nella cartella')->send();
