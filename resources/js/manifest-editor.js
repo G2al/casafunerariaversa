@@ -52,7 +52,7 @@ async function start(root) {
     function selection() {
         const object = active();
         const select = $('[data-element]');
-        select.replaceChildren(new Option('Seleziona sul foglio', ''), ...objects().map(o => new Option((o.editorLocked ? '🔒 ' : '') + (labels[o.editorId] || (o.editorAsset ? labels[o.editorAsset] : (o.text || 'Testo').slice(0, 28))), o.editorId)));
+        select.replaceChildren(new Option('Seleziona sul foglio', ''), ...objects().map(o => new Option((o.editorLocked ? '🔒 ' : '') + (labels[o.editorId] || (o.editorAsset ? (labels[o.editorAsset] || [...data.catalog.symbols, ...data.catalog.uploads].find(item => item.key === o.editorAsset)?.title || 'Immagine') : ({ rect: 'Rettangolo', ellipse: 'Cerchio / ovale', triangle: 'Triangolo' }[o.editorType] || (o.text || 'Testo').slice(0, 28)))), o.editorId)));
         select.value = object?.editorId || '';
         $('[data-properties]').disabled = !object;
         $('[data-selection-hint]').hidden = !!object;
@@ -122,9 +122,38 @@ async function start(root) {
         fit(); selection();
     }
 
+    function folderImages() {
+        const folder = $('[data-symbol-folder]').value;
+        return folder === 'uploads' ? data.catalog.uploads : data.catalog.symbols.filter(item => String(item.folder) === folder);
+    }
+
+    function library() {
+        const items = folderImages(), previous = $('[data-library]').value;
+        $('[data-library]').replaceChildren(new Option(items.length ? 'Seleziona una immagine' : 'Nessuna immagine nella cartella', ''), ...items.map(item => new Option(item.title, item.key)));
+        if (items.some(item => item.key === previous)) $('[data-library]').value = previous;
+        const gallery = $('[data-symbol-gallery]'); gallery.replaceChildren();
+        for (const item of items) {
+            const button = document.createElement('button'); button.type = 'button'; button.title = item.title; button.dataset.symbolKey = item.key;
+            button.setAttribute('aria-label', item.title); button.setAttribute('aria-pressed', String(item.key === $('[data-library]').value));
+            const img = document.createElement('img'); img.src = item.url; img.alt = item.title; img.loading = 'lazy';
+            const caption = document.createElement('span'); caption.textContent = item.title;
+            button.append(img, caption); button.addEventListener('click', () => { if (busy) return; $('[data-library]').value = item.key; highlightLibrary(); }); gallery.append(button);
+        }
+        if (!items.length) { const hint = document.createElement('p'); hint.textContent = 'Nessuna immagine disponibile in questa cartella.'; gallery.append(hint); }
+    }
+
+    function highlightLibrary() {
+        root.querySelectorAll('[data-symbol-key]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.symbolKey === $('[data-library]').value)));
+    }
+
     function catalogs() {
         for (const group of Object.values(data.catalog)) for (const item of group) data.assets[item.key] ??= item.url;
-        $('[data-library]').replaceChildren(new Option('Seleziona simbolo o immagine', ''), ...[...data.catalog.symbols, ...data.catalog.uploads].map(item => new Option(item.title, item.key)));
+        const previousFolder = $('[data-symbol-folder]').value;
+        const folders = data.symbolFolders || [];
+        $('[data-symbol-folder]').replaceChildren(...folders.map(item => new Option(item.name, String(item.id))), new Option('Immagini della pratica', 'uploads'));
+        const initial = folders.find(folder => data.catalog.symbols.some(item => item.folder === folder.id));
+        $('[data-symbol-folder]').value = [...$('[data-symbol-folder]').options].some(option => option.value === previousFolder) ? previousFolder : String(initial?.id ?? folders[0]?.id ?? 'uploads');
+        library();
         $('[data-frame]').replaceChildren(new Option('Seleziona cornice', ''), ...data.catalog.frames.map(item => new Option(item.title, item.key)));
     }
 
@@ -240,7 +269,7 @@ async function start(root) {
                 const response = await fetch(data.uploadUrl, { method: 'POST', credentials: 'same-origin', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf }, body });
                 const result = await response.json(); if (!response.ok) throw new Error(Object.values(result.errors || {}).flat().join(' ') || result.message);
                 data.assets[result.key] = result.url; data.catalog.uploads.push(result); catalogs();
-                $('[data-library]').value = result.key; await addImage(result.key);
+                $('[data-symbol-folder]').value = 'uploads'; library(); $('[data-library]').value = result.key; highlightLibrary(); await addImage(result.key);
             } else if (name === 'add-library') {
                 await addImage($('[data-library]').value);
             } else if (name.startsWith('add-')) {
@@ -292,6 +321,8 @@ async function start(root) {
     root.querySelectorAll('[data-property]').forEach(input => input.addEventListener('input', () => property(input)));
     root.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', () => command(button.dataset.command)));
     $('[data-element]').addEventListener('change', event => { const object = objects().find(item => item.editorId === event.target.value); object ? canvas.setActiveObject(object) : canvas.discardActiveObject(); selection(); canvas.requestRenderAll(); });
+    $('[data-symbol-folder]').addEventListener('change', library);
+    $('[data-library]').addEventListener('change', highlightLibrary);
     $('[data-zoom]').addEventListener('change', fit);
     const resizeObserver = new ResizeObserver(() => data && fit()); resizeObserver.observe($('.me-board'));
     window.addEventListener('beforeunload', event => { if (dirty) { event.preventDefault(); event.returnValue = ''; } });

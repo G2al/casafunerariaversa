@@ -6,6 +6,7 @@ use App\Models\AuditEvent;
 use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
 use App\Models\Symbol;
+use App\Models\SymbolFolder;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -46,6 +47,7 @@ class ManifestEditor
 
         return [
             'scene' => $saved['scene'] ?? $automatic,
+            'symbolFolders' => SymbolFolder::orderBy('name')->get(['id', 'name'])->toArray(),
             'catalog' => $this->catalog($case), 'uploadUrl' => route('private.manifest-editor.upload', $case), 'kind' => $this->kind,
             'automatic' => $automatic, 'automaticError' => $automaticError,
             'assets' => $saved['assets'] ?? $this->assets($case, $data),
@@ -169,7 +171,7 @@ class ManifestEditor
     public function catalog(FuneralCase $case): array
     {
         return [
-            'symbols' => Symbol::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()->map(fn ($s) => ['key' => 'symbol_'.$s->id, 'title' => $s->title, 'url' => route('private.symbol', $s)])->all(),
+            'symbols' => Symbol::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()->map(fn ($s) => ['folder' => $s->symbol_folder_id, 'key' => 'symbol_'.$s->id, 'title' => $s->title, 'url' => route('private.symbol', $s)])->all(),
             'frames' => ManifestTemplate::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($s) => ['key' => 'frame_'.$s->id, 'title' => $s->title, 'url' => route('private.template', $s)])->all(),
             'uploads' => DB::table('editor_attachments')->where('funeral_case_id', $case->id)->get()->map(fn ($s) => ['key' => 'upload_'.$s->id, 'title' => 'Immagine '.$s->id, 'url' => route('private.manifest-editor.attachment', [$case, $s->id])])->all(),
         ];

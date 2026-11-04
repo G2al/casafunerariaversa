@@ -78,3 +78,11 @@ Il modello automatico del manifesto ha postazioni fisse: foto a sinistra, introd
 Migrazione aggiuntiva `2026_11_04_000100_extend_graphic_editor`: progetto prelapide, catalogo simboli e immagini aggiuntive. Non richiede dipendenze Composer o un nuovo collegamento storage. Dopo il caricamento del codice eseguire `php artisan optimize:clear`, `php artisan migrate --force`, `php artisan filament:assets`, `php artisan optimize`. Ricompilare gli asset localmente con `npm ci` e `npm run build`, quindi caricare **tutta** `public/build` (manifest e assets) sul server.
 
 Verifiche aggiornamento 4 novembre: suite completa **86 test, 1120 asserzioni**, build riprodotta da lockfile, Pint e Blade superati; audit npm produzione senza vulnerabilità. Prova browser con scala del testo dagli angoli, forme/riempimento/bordi/foglio/livelli, simboli, immagini aggiuntive, cambio cornice, salvataggio/riapertura e progetti separati su desktop/mobile. PDF dei due editor: una pagina A4 orizzontale, immagine incorporata identica al salvataggio (SHA256). Migrazione locale verificata senza variazioni di dati preesistenti e PDF storici.
+
+## Cartelle dei simboli
+
+La voce **Simboli** apre le cartelle. Creare una cartella, aprirla e usare **Carica più immagini** per importare fino a 100 immagini JPEG/PNG/WebP insieme, ottimizzate e salvate in privato. I titoli iniziali derivano dai nomi dei file. Dentro la cartella si possono modificare, disattivare o eliminare i simboli; dalla modifica si può cambiare cartella. Le cartelle piene sono protette dalla cancellazione.
+
+Negli editor di manifesto e prelapide scegliere **Cartella simboli**, poi una immagine dalla galleria o dal selettore e premere **Inserisci**. La voce **Immagini della pratica** mostra gli upload aggiuntivi della pratica, separati dal catalogo condiviso.
+
+La migrazione `2026_11_04_000200_add_symbol_folders` raccoglie gli eventuali simboli preesistenti in **Generali**, conservando immagini, identificativi e composizioni salvate. Pubblicare codice e `public/build` aggiornati, poi eseguire `php artisan optimize:clear`, `php artisan migrate --force`, `php artisan optimize`.

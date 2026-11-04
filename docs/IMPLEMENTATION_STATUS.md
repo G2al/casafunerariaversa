@@ -39,3 +39,6 @@
 Implementati blocco ceneri anche a pagina 1, documento familiare nella riga del testimone, rimozione scelta trasporto dal form, risorsa Simboli, upload grafici privati, forme con bordi/riempimento/livelli/adattamento al foglio, cambio cornice e scala testi dagli angoli. Nuovo manifesto automatico a posizioni fisse con logo/Facebook. Prelapide con doppio bordo/primo simbolo e progetto live indipendente. Migrazione incrementale applicata localmente con confronto dati/PDF invariati. Dettagli in RELEASE_2026-11-04.md e MANIFEST_EDITOR.md.
 
 Verifica finale documenti anche con estremi del familiare parziali: ulteriori 17 test superati, 174 asserzioni (controlli mirati sovrapposti alla suite completa).
+
+
+Cartelle simboli: nuova pagina cartelle nella voce Simboli, upload multiplo fino a 100 immagini, spostamento tra cartelle e protezione delle cartelle piene. Selezione cartella + galleria in entrambi gli editor. Migrazione incrementale con recupero dei simboli in Generali; 20 test mirati superati, 191 asserzioni.

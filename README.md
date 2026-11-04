@@ -93,3 +93,6 @@ Per conservare lo storico, salvare insieme database, storage privato e APP_KEY o
 
 
 **Aggiornamento 4 novembre:** nuova risorsa amministrativa **Simboli** e azione **Modifica prelapide live**, con progetto indipendente dal manifesto. Prelapide iniziale con doppio bordo, nome, date, primo simbolo attivo e logo. Documento del familiare nel tab Familiare referente, riportato nella riga del testimone a pagina 2. Blocco ceneri anche a pagina 1 della cremazione. Migrazione `2026_11_04_000100_extend_graphic_editor`. Dettagli in [RELEASE_2026-11-04.md](docs/RELEASE_2026-11-04.md).
+
+
+**Simboli organizzati in cartelle:** aprire Simboli, creare/aprire una cartella e usare Carica più immagini (fino a 100 per operazione). Negli editor scegliere prima la cartella e poi la miniatura da inserire. I simboli precedenti vengono raccolti in Generali. Migrazione `2026_11_04_000200_add_symbol_folders`; aggiornare anche `public/build`.

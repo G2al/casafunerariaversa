@@ -8,6 +8,7 @@ use App\Models\FuneralStaffMember;
 use App\Models\FuneralVehicle;
 use App\Models\ManifestTemplate;
 use App\Models\Symbol;
+use App\Models\SymbolFolder;
 use App\Models\User;
 use App\Policies\AdminPolicy;
 use App\Policies\FuneralCasePolicy;
@@ -31,7 +32,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        foreach ([Symbol::class, User::class, CompanySettings::class, ManifestTemplate::class, FuneralStaffMember::class, FuneralVehicle::class] as $model) {
+        foreach ([SymbolFolder::class, Symbol::class, User::class, CompanySettings::class, ManifestTemplate::class, FuneralStaffMember::class, FuneralVehicle::class] as $model) {
             Gate::policy($model, AdminPolicy::class);
         }
         Gate::policy(FuneralCase::class, FuneralCasePolicy::class);

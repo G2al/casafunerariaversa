@@ -5,6 +5,7 @@ namespace App\Filament\Support;
 use App\Models\FuneralStaffMember;
 use App\Models\FuneralVehicle;
 use App\Models\ManifestTemplate;
+use App\Models\SymbolFolder;
 use Filament\Actions\DeleteBulkAction;
 use Illuminate\Auth\Access\Response;
 use Illuminate\Database\Eloquent\Model;
@@ -21,7 +22,7 @@ class DeletionActions
                 if ($authorization->denied()) {
                     return $authorization;
                 }
-                if (($record instanceof FuneralStaffMember || $record instanceof FuneralVehicle || $record instanceof ManifestTemplate) && $record->isUsed()) {
+                if (($record instanceof SymbolFolder || $record instanceof FuneralStaffMember || $record instanceof FuneralVehicle || $record instanceof ManifestTemplate) && $record->isUsed()) {
                     return Response::deny('I record già utilizzati si possono disattivare da Modifica, conservando lo storico.');
                 }
 

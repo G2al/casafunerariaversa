@@ -26,10 +26,12 @@
             <button type="button" data-command="reset">Ripristina automatico</button>
         </div>
         <div class="me-toolbar">
-            <label>Simboli e immagini<select data-library></select></label><button type="button" data-command="add-library">Inserisci</button>
+            <label>Cartella simboli<select data-symbol-folder></select></label>
+            <label>Immagine<select data-library></select></label><button type="button" data-command="add-library">Inserisci</button>
             <label>Cornice<select data-frame></select></label><button type="button" data-command="change-frame">Cambia cornice</button>
             <label>Immagine aggiuntiva<input data-upload type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" data-command="upload">Carica e inserisci</button>
         </div>
+        <div class="me-symbol-gallery" data-symbol-gallery aria-label="Immagini della cartella"></div>
         <div class="me-workspace">
             <section class="me-board" aria-label="Foglio A4 orizzontale">
                 <div class="me-zoom"><label>Zoom <select data-zoom><option value="fit">Adatta al foglio</option><option value="0.5">50%</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.5">150%</option></select></label><span>A4 orizzontale · 297 × 210 mm</span></div>
