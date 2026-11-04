@@ -57,3 +57,6 @@ Regression test con circa 2,5 MB nei due progetti: stato Livewire inferiore a 10
 
 
 Controlli grafici del testo: quattro angoli proporzionali con cursori diagonali espliciti, punti di presa/touch più grandi, lati per il solo reflow e aggiornamento live del valore font. Browser verificato su tutti gli angoli e due editor, con salvataggio/riapertura; build Vite aggiornata.
+
+
+Testo verticale: maniglie mt/mb e campo Altezza attivati; stiramento verticale indipendente persistito nel parametro opzionale stretchY. Normalizzazione angoli basata su scaleX per preservare lo stiramento esistente. Test: 13 superati, 137 asserzioni; browser nei due editor (quattro angoli, lati, sopra/sotto, salvataggio/riapertura). Build Vite aggiornata; pubblicare backend e build insieme.

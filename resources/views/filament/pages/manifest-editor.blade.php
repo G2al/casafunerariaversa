@@ -9,7 +9,7 @@
     </style>
     <div class="me" data-manifest-editor data-url="{{ route('private.manifest-editor.show', [$this->getRecord(), 'kind' => $this->editorKind]) }}" wire:ignore>
         <div class="me-top">
-            <div><strong>{{ $this->getRecord()->code }} · {{ $this->getRecord()->full_name }}</strong><p>Angoli: ingrandisci testi e immagini. Lati del testo: cambia la larghezza del riquadro. Doppio clic: modifica il testo.</p></div>
+            <div><strong>{{ $this->getRecord()->code }} · {{ $this->getRecord()->full_name }}</strong><p>Angoli: ingrandisci testi e immagini. Lati del testo: cambia la larghezza. Sopra/sotto: allunga o schiaccia le lettere. Doppio clic: modifica il testo.</p></div>
             <a class="me-button" href="{{ \App\Filament\Resources\FuneralCaseResource::getUrl('edit', ['record' => $this->getRecord()]) }}">Torna alla pratica</a>
         </div>
         <div class="me-notice" data-stale hidden>I dati della pratica sono cambiati dall’ultimo salvataggio. La composizione salvata resta invariata. Usa “Aggiorna dalla pratica” per ricaricare testi e immagini.</div>

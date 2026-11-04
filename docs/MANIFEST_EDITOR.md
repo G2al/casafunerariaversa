@@ -102,3 +102,11 @@ Verifica SVG conclusiva: suite completa 95 test superati, 1206 asserzioni; uploa
 I quattro angoli del testo usano la scala proporzionale con cursori diagonali espliciti e punti di presa più grandi; le maniglie centrali sinistra/destra modificano invece la larghezza del riquadro e il ritorno a capo. La dimensione del carattere viene mostrata durante il trascinamento e normalizzata al rilascio, conservandola nel progetto salvato. La proporzione agli angoli resta attiva anche premendo Shift.
 
 Verifica browser Edge: tutti e quattro gli angoli su testo largo, aumento effettivo del font e dell’altezza delle lettere, maniglie laterali senza variazione del font, salvataggio e riapertura in manifesto e prelapide. Build Vite rigenerata: per pubblicare caricare codice e tutta public/build aggiornata, poi ricaricare completamente il browser.
+
+## Allungamento verticale del testo
+
+Le maniglie centrali sopra e sotto allungano o schiacciano le lettere in verticale, conservandone la larghezza. Anche il campo Altezza è utilizzabile per il testo. Gli angoli continuano a scalare proporzionalmente l’aspetto corrente, incluso l’eventuale allungamento verticale già applicato; i lati sinistro/destro modificano il riquadro e il ritorno a capo.
+
+Il parametro opzionale stretchY viene conservato nel JSON dell’editor e validato tra 0.1 e 10; le composizioni precedenti partono da 1. Nessuna nuova migrazione. Pubblicare insieme codice PHP e public/build aggiornati, poi rigenerare le cache e ricaricare l’editor completamente.
+
+Verifica: 13 test mirati superati (137 asserzioni), prova browser nei due editor di tutti gli angoli e lati, altezza indipendente, mantenimento delle proporzioni dopo stiramento e salvataggio/riapertura.

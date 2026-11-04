@@ -34,7 +34,7 @@ async function start(root) {
     function serialize() {
         return { version: 1, ...(currentBackground ? { backgroundAsset: currentBackground } : {}), elements: objects().map(object => ({
             id: object.editorId, type: object.editorType || (object.editorAsset ? 'image' : 'text'),
-            ...(object.editorAsset ? { asset: object.editorAsset } : object.editorType === 'text' ? { text: object.text } : { fill: object.fill || 'transparent', stroke: object.stroke || '#000000', strokeWidth: object.strokeWidth || 0 }),
+            ...(object.editorAsset ? { asset: object.editorAsset } : object.editorType === 'text' ? { text: object.text, stretchY: +object.scaleY.toFixed(6) } : { fill: object.fill || 'transparent', stroke: object.stroke || '#000000', strokeWidth: object.strokeWidth || 0 }),
             x: +object.left.toFixed(3), y: +object.top.toFixed(3), width: +(object.width * object.scaleX).toFixed(3), height: +(object.height * object.scaleY).toFixed(3),
             fontSize: object.fontSize || 12, fontFamily: object.fontFamily || 'DejaVu Serif', bold: object.fontWeight === 'bold', italic: object.fontStyle === 'italic',
             color: typeof object.fill === 'string' && /^#[a-f\d]{6}$/i.test(object.fill) ? object.fill : '#000000', align: object.textAlign || 'center', lineHeight: object.lineHeight || 1.5, locked: !!object.editorLocked,
@@ -65,7 +65,7 @@ async function start(root) {
             if (input.type === 'checkbox') input.checked = input.dataset.property === 'transparent' ? element.fill === 'transparent' : !!element[input.dataset.property];
             else input.value = input.type === 'color' && element[input.dataset.property] === 'transparent' ? '#ffffff' : element[input.dataset.property] ?? '';
         });
-        $('[data-property="height"]').disabled = object.editorType === 'text';
+        $('[data-property="height"]').disabled = false;
         $('[data-command="full-page"]').disabled = object.editorType === 'text';
         $('[data-command="undo"]').disabled = position <= 0;
         $('[data-command="redo"]').disabled = position >= history.length - 1;
@@ -106,13 +106,13 @@ async function start(root) {
                 const Klass = { rect: Rect, ellipse: Ellipse, triangle: Triangle }[item.type];
                 object = new Klass({ width: item.width, height: item.height, ...(item.type === 'ellipse' ? { rx: item.width / 2, ry: item.height / 2 } : {}), fill: item.fill || 'transparent', stroke: item.stroke || '#000000', strokeWidth: item.strokeWidth ?? 1, strokeUniform: true });
             } else {
-                object = new Textbox(item.text || '', { width: item.width, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.bold ? 'bold' : 'normal', fontStyle: item.italic ? 'italic' : 'normal', fill: item.color, textAlign: item.align, lineHeight: item.lineHeight, splitByGrapheme: false });
+                object = new Textbox(item.text || '', { scaleY: item.stretchY ?? 1, width: item.width, fontSize: item.fontSize, fontFamily: item.fontFamily, fontWeight: item.bold ? 'bold' : 'normal', fontStyle: item.italic ? 'italic' : 'normal', fill: item.color, textAlign: item.align, lineHeight: item.lineHeight, splitByGrapheme: false });
             }
             object.set({ originX: 'left', originY: 'top', left: item.x, top: item.y, editorId: item.id, editorType: item.type, ...(item.type === 'text' || item.type === 'image' ? { strokeWidth: 0 } : {}), lockRotation: true, cornerColor: '#b45309', borderColor: '#b45309', cornerSize: 11, transparentCorners: false });
             object.setControlsVisibility({ mtr: false });
             if (item.type === 'text') {
                 object.controls = controlsUtils.createTextboxDefaultControls();
-                object.setControlsVisibility({ mtr: false, mt: false, mb: false });
+                object.setControlsVisibility({ mtr: false, mt: true, mb: true });
                 for (const corner of ['tl','tr','bl','br']) {
                     const control = object.controls[corner];
                     control.actionHandler = controlsUtils.scalingEqually;
@@ -121,6 +121,12 @@ async function start(root) {
                     control.cursorStyleHandler = () => ['tl','br'].includes(corner) ? 'nwse-resize' : 'nesw-resize';
                     control.sizeX = control.sizeY = 13;
                     control.touchSizeX = control.touchSizeY = 28;
+                }
+                for (const side of ['mt','mb']) {
+                    object.controls[side].actionHandler = controlsUtils.scalingY;
+                    object.controls[side].getActionName = () => 'scaleY';
+                    object.controls[side].cursorStyleHandler = () => 'ns-resize';
+                    object.controls[side].touchSizeX = object.controls[side].touchSizeY = 28;
                 }
                 for (const side of ['ml','mr']) object.controls[side].cursorStyleHandler = () => 'ew-resize';
             }
@@ -196,8 +202,9 @@ async function start(root) {
             else if (object.editorType === 'text') object.set('width', Math.max(10, value));
             else object.set('scaleX', Math.max(10, value) / object.width);
         }
-        else if (key === 'height' && object.editorType !== 'text') {
+        else if (key === 'height') {
             if (object.editorAsset) object.scaleToHeight(Math.max(5, value));
+            else if (object.editorType === 'text') object.set('scaleY', Math.min(10, Math.max(0.1, value / object.height)));
             else object.set('scaleY', Math.max(0.5, value) / object.height);
         }
         else object.set(({ bold: 'fontWeight', italic: 'fontStyle', color: 'fill', align: 'textAlign' })[key] || key, key === 'bold' ? (value ? 'bold' : 'normal') : key === 'italic' ? (value ? 'italic' : 'normal') : value);
@@ -320,12 +327,13 @@ async function start(root) {
     });
     canvas.on('object:scaling', ({ target }) => {
         if (target?.editorType !== 'text') return;
-        const size = Math.min(100, Math.max(6, target.fontSize * target.scaleY));
+        const size = Math.min(100, Math.max(6, target.fontSize * target.scaleX));
         $('[data-property="fontSize"]').value = +size.toFixed(2);
+        $('[data-property="height"]').value = +(target.height * target.scaleY).toFixed(3);
     });
     canvas.on('object:modified', ({ target }) => {
         if (target && target.editorType === 'text') {
-            target.set({ width: target.width * target.scaleX, fontSize: Math.min(100, Math.max(6, target.fontSize * target.scaleY)), scaleX: 1, scaleY: 1 });
+            target.set({ width: target.width * target.scaleX, fontSize: Math.min(100, Math.max(6, target.fontSize * target.scaleX)), scaleY: Math.min(10, Math.max(0.1, target.scaleY / target.scaleX)), scaleX: 1 });
             target.initDimensions();
         }
         if (target) clamp(target);

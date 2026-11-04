@@ -233,4 +233,22 @@ class ManifestEditorTest extends TestCase
         $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
         $this->assertNotSame($frozen, $this->case->fresh()->manifest_layout['assets'][$key]);
     }
+
+    public function test_vertical_text_stretch_is_preserved_and_out_of_range_values_are_rejected(): void
+    {
+        $payload = $this->payload();
+        $payload['scene']['elements'][0]['stretchY'] = 2.25;
+        $payload['scene']['elements'][0]['height'] *= 2.25;
+        $this->postJson(route('private.manifest-editor.save', $this->case), $payload)->assertOk();
+        $saved = $this->case->fresh()->manifest_layout;
+        $this->assertSame(2.25, $saved['scene']['elements'][0]['stretchY']);
+        $this->getJson(route('private.manifest-editor.show', $this->case))->assertOk()->assertJsonPath('scene.elements.0.stretchY', 2.25);
+        foreach ([0, 11] as $invalid) {
+            $input = $this->payload();
+            $input['scene']['elements'][0]['stretchY'] = $invalid;
+            $this->postJson(route('private.manifest-editor.save', $this->case), $input)->assertUnprocessable();
+        }
+        $this->assertSame($saved['revision'], $this->case->fresh()->manifest_layout['revision']);
+        $this->assertCount(1, Storage::disk('local')->files('manifest-editor'));
+    }
 }
