@@ -3,10 +3,13 @@
 namespace App\Filament\Resources\FuneralCaseResource\Pages;
 
 use App\Filament\Resources\FuneralCaseResource;
+use App\Filament\Support\CommitsVehicle;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateCase extends CreateRecord
 {
+    use CommitsVehicle;
+
     protected static string $resource = FuneralCaseResource::class;
 
     protected static ?string $title = 'Nuova pratica funebre';

@@ -11,6 +11,7 @@ use App\Filament\Support\FuneralCaseDeletionActions;
 use App\Filament\Support\FuneralPacketForm;
 use App\Filament\Support\IdentityDocumentForm;
 use App\Filament\Support\PrivateUpload;
+use App\Filament\Support\VehicleCommitmentForm;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\ManifestTemplate;
@@ -93,6 +94,9 @@ class FuneralCaseResource extends Resource
                 if (str_contains($field, 'phone')) {
                     $input->tel();
                 }
+                if (in_array($field, ['first_name', 'last_name', 'transport_at', 'transport_origin', 'transport_destination'], true)) {
+                    $input->live(onBlur: true);
+                }
                 if ($field === 'contact_email') {
                     $input->email();
                 }
@@ -122,7 +126,8 @@ class FuneralCaseResource extends Resource
             }
             if ($section === 'Trasporto') {
                 $components[] = Select::make('staff_member_id')->label('Operatore incaricato del trasporto')->relationship('staffMember', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload();
-                $components[] = Select::make('vehicle_id')->label('Mezzo')->relationship('vehicle', 'plate', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload();
+                $components[] = Select::make('vehicle_id')->label('Mezzo')->relationship('vehicle', 'plate', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->live();
+                array_push($components, ...VehicleCommitmentForm::components());
                 $components[] = Select::make('transportStaff')->label('Personale da riportare nel documento')->relationship('transportStaff', 'name', fn (Builder $query) => $query->where('is_active', true))->multiple()->searchable()->preload()->maxItems(16)->columnSpanFull()->helperText('Seleziona i nominativi da stampare con qualifica ed estremi di abilitazione, includendo l’operatore incaricato del trasporto.');
             }
             $tab = Tab::make($section)->schema([Section::make($section)->schema($components)->columns(['default' => 1, 'md' => 2])]);

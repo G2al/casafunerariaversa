@@ -10,6 +10,8 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', ActiveUser::class])->prefix('private')->name('private.')->group(function () {
+    Route::get('vehicles/{vehicle}/photos/{index}', [PrivateFilesController::class, 'vehiclePhoto'])->whereNumber('index')->name('vehicle-photo');
+    Route::get('vehicles/{vehicle}/attachments/{index}', [PrivateFilesController::class, 'vehicleAttachment'])->whereNumber('index')->name('vehicle-attachment');
     Route::get('symbols/{symbol}', [ManifestEditorController::class, 'symbol'])->name('symbol');
     Route::post('cases/{case}/editor-upload', [ManifestEditorController::class, 'upload'])->name('manifest-editor.upload');
     Route::get('cases/{case}/editor-attachments/{attachment}', [ManifestEditorController::class, 'attachment'])->name('manifest-editor.attachment');

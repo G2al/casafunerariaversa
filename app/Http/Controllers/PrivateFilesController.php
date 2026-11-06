@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
+use App\Models\FuneralVehicle;
 use App\Models\ManifestTemplate;
 use App\Services\PdfGenerator;
 use App\Services\PrivateIdentityDocument;
@@ -14,6 +15,30 @@ use Illuminate\Validation\ValidationException;
 
 class PrivateFilesController extends Controller
 {
+    public function vehiclePhoto(FuneralVehicle $vehicle, int $index)
+    {
+        Gate::authorize('create', FuneralCase::class);
+        abort_unless(auth()->user()->isAdmin() || $vehicle->is_active || FuneralCase::visibleTo(auth()->user())->where('vehicle_id', $vehicle->id)->exists(), 403);
+        $path = $vehicle->attachments[$index] ?? null;
+        abort_unless($path && in_array(strtolower(pathinfo($path, PATHINFO_EXTENSION)), ['jpg', 'jpeg', 'png', 'webp'], true)
+            && Storage::disk('local')->exists($path), 404);
+        app(PrivateIdentityDocument::class)->validate($path, 'vehicle-attachments');
+
+        return Storage::disk('local')->response($path, null, ['Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
+    }
+
+    public function vehicleAttachment(FuneralVehicle $vehicle, int $index)
+    {
+        Gate::authorize('view', $vehicle);
+        $path = $vehicle->attachments[$index] ?? null;
+        abort_unless($path && Storage::disk('local')->exists($path), 404);
+        app(PrivateIdentityDocument::class)->validate($path, 'vehicle-attachments');
+
+        return Storage::disk('local')->response($path, basename($path), [
+            'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
     public function preview(FuneralCase $case, string $kind, PdfGenerator $generator)
     {
         Gate::authorize('view', $case);

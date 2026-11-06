@@ -63,3 +63,14 @@ Testo verticale: maniglie mt/mb e campo Altezza attivati; stiramento verticale i
 
 
 Cornice manifesto opzionale in validazione, PDF ed editor; scelta Senza cornice nel progetto. Fronte/retro documento delegato nel tab familiare, upload privati, validazione e accesso autorizzato, conservazione nel cestino e pulizia nel purge. Migrazione incrementale applicata localmente, dati/PDF storici invariati. Test mirati: 25 superati, 257 asserzioni.
+
+
+## 6 novembre 2026 - Allegati dei mezzi
+
+Aggiunto campo facoltativo Foto e allegati del mezzo in creazione/modifica: upload multiplo e riordinabile di massimo 50 JPEG/PNG/WebP/PDF, 10 MB per file, nomi originali nel form e ottimizzazione immagini WebP. Archiviazione privata e apertura/download autenticati riservati agli amministratori, coerentemente con la policy Mezzi. Rimozione dei file dopo salvataggio o cancellazione del mezzo, soltanto dopo commit e se non condivisi; conservazione in caso di rollback o mezzo associato a pratiche. Migrazione 2026_11_06_000100 applicata localmente, dati/PDF preesistenti invariati. Quattro test dedicati superati, 42 asserzioni. In produzione, dopo il caricamento del codice: php artisan optimize:clear, php artisan migrate --force, php artisan optimize. Nessuna nuova dipendenza o modifica JavaScript.
+
+Verifica conclusiva allegati mezzi: suite completa 105 test superati, 1315 asserzioni; Pint e build Vite riusciti. Migrazione locale applicata e confronto dati/snapshot/PDF invariati.
+
+## 6 novembre 2026 - Impegno mezzo e WAHA
+
+Galleria foto del mezzo selezionato nel tab Trasporto, disponibile anche agli operatori autorizzati. Pulsante Impegna mezzo con riepilogo/conferma; salva l'intera pratica prima dell'invio, sia in creazione sia in modifica. Aggiorna impegno per variazioni, destinatario fisso +39 335 737 8138, API WAHA sendText con sessione/chiave/URL da configurazione server. Nuova tabella vehicle_commitments con snapshot, ultimo invio confermato, stato, ID messaggio/tentativo; lock e impronta per evitare duplicati, retry soltanto manuale con avviso sugli esiti incerti. Nessun invio al semplice salvataggio/Completata e nessun controllo sovrapposizioni. Migrazione 2026_11_06_000200 predisposta ma NON eseguita localmente. Per richiesta esplicita: nessun test, build, migrazione, connessione WAHA o invio di prova per questa tranche; non attribuire alla nuova integrazione i test della precedente modifica. Configurazione/deploy e limiti in WAHA_VEHICLE_COMMITMENTS.md. Nessuna nuova dipendenza o modifica JavaScript.

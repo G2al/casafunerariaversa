@@ -4,12 +4,15 @@ namespace App\Filament\Resources\FuneralCaseResource\Pages;
 
 use App\Filament\Resources\FuneralCaseResource;
 use App\Filament\Support\CaseActions;
+use App\Filament\Support\CommitsVehicle;
 use App\Filament\Support\FuneralCaseDeletionActions;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
 
 class EditCase extends EditRecord
 {
+    use CommitsVehicle;
+
     protected static string $resource = FuneralCaseResource::class;
 
     protected function mutateFormDataBeforeFill(array $data): array
