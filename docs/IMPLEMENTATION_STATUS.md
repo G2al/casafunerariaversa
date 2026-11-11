@@ -93,3 +93,8 @@ Sostituito il polling 5s con canale privato occupancy (Reverb 1.13, Echo/PusherJ
 ## Correzione apertura/creazione pratica - query Filament
 
 Trace qualifyColumn() su modello null: cinque callback modifyQueryUsing dei Select relationship nella pratica usavano Builder $q. Filament inietta la query per nome query; il parametro q veniva risolto dal container creando un Builder privo di modello. Rinominati parametro e utilizzo in $query per proprietario, direttore tecnico, mezzo, operatore incaricato e personale multiplo. Nessuna modifica ENV/schema, dipendenza, build o migrazione. Corretti tutti i punti con questo errore nel form, compresa la visualizzazione readonly. Verifica statica PHP/Pint; nessun test funzionale locale per la preferenza dell’utente.
+
+
+## Dashboard occupazioni - nuova presentazione
+
+Mezzi e stanze in sezioni a tutta larghezza con griglie responsive di schede affiancate. Ordine automatico: occupati (per fine impegno), prenotati (per prossimo inizio), disponibili (per nome); ricalcolato anche alle scadenze locali senza polling HTTP. Icone, colori distinti, indicatori pulsanti discreti e rispetto di prefers-reduced-motion. Prossimo impegno futuro visibile con countdown, ulteriori prenotazioni nei dettagli; contatori per stato e messaggi per sezioni vuote. Badge “Live connesso”, rimosso “Aggiorna ora”. Build di produzione rigenerata; sintassi JavaScript e diff controllati. Nessun test funzionale/browser locale, nessuna migrazione, nuova dipendenza o modifica ai servizi Reverb.

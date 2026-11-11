@@ -9,7 +9,7 @@
              data-snapshot="{{ \Illuminate\Support\Js::encode($this->snapshot()) }}">
             <div class="ol-heading">
                 <div><span class="ol-connection" data-connection role="status" aria-live="polite">Connessione in preparazione</span><span class="ol-updated" data-updated></span></div>
-                <button type="button" class="ol-refresh" data-refresh>Aggiorna ora</button>
+                <span class="ol-order-hint">In corso · In programma · Disponibili</span>
             </div>
             <p class="ol-warning" data-warning role="alert" hidden></p>
             <div class="ol-grid" data-resources></div>

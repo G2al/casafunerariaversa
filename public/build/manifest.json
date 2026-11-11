@@ -18,7 +18,7 @@
     ]
   },
   "resources/css/occupancy-live.css": {
-    "file": "assets/occupancy-live-C0DACxO2.css",
+    "file": "assets/occupancy-live-DgQjKqrg.css",
     "src": "resources/css/occupancy-live.css",
     "isEntry": true,
     "name": "occupancy-live",
@@ -39,7 +39,7 @@
     "isEntry": true
   },
   "resources/js/occupancy-live.js": {
-    "file": "assets/occupancy-live-DPu7pWcE.js",
+    "file": "assets/occupancy-live-CWOirjtz.js",
     "name": "occupancy-live",
     "src": "resources/js/occupancy-live.js",
     "isEntry": true
