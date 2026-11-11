@@ -144,10 +144,10 @@ class FuneralCaseResource extends Resource
         $groups['Camera ardente e rito'][] = FuneralPacketForm::priorTransfer();
         $groups['Trasporto'][] = TextInput::make('transport_distance_km')->label('Distanza dichiarata (km)')->numeric()->minValue(0)->maxValue(999999.99)->default(100);
         $groups['Trasporto'][] = DateTimePicker::make('transport_ends_at')->label('Fine impegno mezzo')->seconds(false)->after('transport_at')->live(onBlur: true)->afterStateUpdated(fn (Set $set) => $set('override_vehicle_conflict', false));
-        $groups['Trasporto'][] = Select::make('technical_director_id')->label('Direttore tecnico')->relationship('technicalDirector', 'name', fn (Builder $q) => $q->where('is_active', true)->where('is_technical_director', true))->searchable()->preload()->live();
-        $groups['Trasporto'][] = Select::make('vehicle_id')->label('Mezzo')->relationship('vehicle', 'plate', fn (Builder $q) => $q->where('is_active', true))->searchable()->preload()->live()->afterStateUpdated(fn (Set $set) => $set('override_vehicle_conflict', false));
-        $groups['Trasporto'][] = Select::make('staff_member_id')->label('Operatore incaricato del trasporto')->relationship('staffMember', 'name', fn (Builder $q) => $q->where('is_active', true))->searchable()->preload();
-        $groups['Trasporto'][] = Select::make('transportStaff')->label('Personale da riportare nel documento')->relationship('transportStaff', 'name', fn (Builder $q) => $q->where('is_active', true))->multiple()->searchable()->preload()->maxItems(16);
+        $groups['Trasporto'][] = Select::make('technical_director_id')->label('Direttore tecnico')->relationship('technicalDirector', 'name', fn (Builder $query) => $query->where('is_active', true)->where('is_technical_director', true))->searchable()->preload()->live();
+        $groups['Trasporto'][] = Select::make('vehicle_id')->label('Mezzo')->relationship('vehicle', 'plate', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->live()->afterStateUpdated(fn (Set $set) => $set('override_vehicle_conflict', false));
+        $groups['Trasporto'][] = Select::make('staff_member_id')->label('Operatore incaricato del trasporto')->relationship('staffMember', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload();
+        $groups['Trasporto'][] = Select::make('transportStaff')->label('Personale da riportare nel documento')->relationship('transportStaff', 'name', fn (Builder $query) => $query->where('is_active', true))->multiple()->searchable()->preload()->maxItems(16);
         $groups['Trasporto'] = array_merge($groups['Trasporto'], VehicleCommitmentForm::components());
         $groups['Familiare referente'][] = FuneralPacketForm::familyDocument();
         $groups['Familiare referente'][] = FuneralPacketForm::familyDelegant();
@@ -165,7 +165,7 @@ class FuneralCaseResource extends Resource
                 Hidden::make('transport_enabled')->default(true)->formatStateUsing(fn () => true)->dehydrateStateUsing(fn () => true),
                 Select::make('status')->label('Stato')->options(CaseStatus::class)->required()->default(CaseStatus::Draft),
                 DateTimePicker::make('registered_at')->label('Presa in carico')->required()->default(now())->seconds(false),
-                Select::make('operator_id')->label('Operatore proprietario')->relationship('owner', 'name', fn (Builder $q) => $q->where('is_active', true))->searchable()->preload()->visible(fn () => auth()->user()?->isAdmin()),
+                Select::make('operator_id')->label('Operatore proprietario')->relationship('owner', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->visible(fn () => auth()->user()?->isAdmin()),
             ])->columns(2)->columnSpanFull(),
             Tabs::make('Scheda')->tabs([
                 Tab::make('Defunto')->schema($defunto),
