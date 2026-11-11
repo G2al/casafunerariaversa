@@ -14,9 +14,9 @@ return [
             'death_cause' => 'Causa del decesso (riservata)', 'reference_phone' => 'Telefono di riferimento',
         ],
         'Familiare referente' => [
-            'contact_first_name' => 'Nome referente', 'contact_last_name' => 'Cognome referente',
-            'contact_relationship' => 'Parentela', 'contact_phone' => 'Telefono referente', 'contact_email' => 'Email referente',
-            'contact_address' => 'Indirizzo referente', 'contact_city' => 'Comune referente',
+            'contact_first_name' => 'Nome delegante', 'contact_last_name' => 'Cognome delegante',
+            'contact_relationship' => 'Parentela', 'contact_phone' => 'Telefono delegante', 'contact_email' => 'Email delegante',
+            'contact_address' => 'Indirizzo delegante', 'contact_city' => 'Comune delegante',
         ],
         'Camera ardente e rito' => [
             'viewing_venue' => 'Sede camera ardente', 'viewing_address' => 'Indirizzo camera ardente',

@@ -12,6 +12,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -54,6 +55,7 @@ class FuneralVehicleResource extends Resource
 
                     return ['name' => $record->attachment_names[$file] ?? basename($file), 'size' => Storage::disk('local')->size($file), 'type' => Storage::disk('local')->mimeType($file), 'url' => route('private.vehicle-attachment', [$record, array_search($file, $record->attachments, true)])];
                 }),
+            View::make('filament.forms.vehicle-file-actions')->columnSpanFull(),
         ]);
     }
 

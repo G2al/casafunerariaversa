@@ -5,13 +5,17 @@ namespace App\Services;
 use App\Enums\CaseType;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
+use App\Models\ManifestRecord;
 use App\Models\Symbol;
 use Illuminate\Validation\ValidationException;
 
 class DocumentData
 {
-    public function missing(FuneralCase $case, string $kind): array
+    public function missing(FuneralCase|ManifestRecord $case, string $kind): array
     {
+        if ($case instanceof ManifestRecord) {
+            $case = $case->asCase();
+        }
         if ($kind === 'document' && ! $case->transport_enabled) {
             return [];
         }
@@ -32,14 +36,17 @@ class DocumentData
         return $missing;
     }
 
-    public function assemble(FuneralCase $case, string $kind): array
+    public function assemble(FuneralCase|ManifestRecord $case, string $kind): array
     {
+        if ($case instanceof ManifestRecord) {
+            $case = $case->asCase();
+        }
         if ($kind === 'prelapide') {
             return ['symbol' => app(PrivateImage::class)->dataUri(Symbol::where('is_active', true)->orderBy('sort_order')->orderBy('id')->value('image_path')), 'logo' => app(PrivateImage::class)->dataUri(CompanySettings::current()['logo_path'] ?? null) ?? 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png'))), 'background' => null, 'photo' => null, 'code' => $case->code, 'first_name' => $case->first_name, 'last_name' => $case->last_name, 'birth_date' => $case->birth_date?->format('d/m/Y'), 'death_date' => $case->death_date?->format('d/m/Y')];
         }
         $missing = $kind === 'document' ? [] : $this->missing($case, $kind);
         if ($kind !== 'document' && $missing) {
-            throw ValidationException::withMessages(['document' => 'Dati mancanti: '.implode(', ', $missing).'. Salva la pratica dopo averli compilati.']);
+            throw ValidationException::withMessages(['document' => 'Dati mancanti: '.implode(', ', $missing).'. Salva i dati dopo averli compilati.']);
         }
         $company = CompanySettings::current();
         $images = app(PrivateImage::class);

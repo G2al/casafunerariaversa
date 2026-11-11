@@ -73,4 +73,13 @@ Verifica conclusiva allegati mezzi: suite completa 105 test superati, 1315 asser
 
 ## 6 novembre 2026 - Impegno mezzo e WAHA
 
+> Superato dalla release dell'11 novembre: il flusso corrente usa WhatsApp manuale, senza WAHA; vedere RELEASE_2026-11-11.md.
+
 Galleria foto del mezzo selezionato nel tab Trasporto, disponibile anche agli operatori autorizzati. Pulsante Impegna mezzo con riepilogo/conferma; salva l'intera pratica prima dell'invio, sia in creazione sia in modifica. Aggiorna impegno per variazioni, destinatario fisso +39 335 737 8138, API WAHA sendText con sessione/chiave/URL da configurazione server. Nuova tabella vehicle_commitments con snapshot, ultimo invio confermato, stato, ID messaggio/tentativo; lock e impronta per evitare duplicati, retry soltanto manuale con avviso sugli esiti incerti. Nessun invio al semplice salvataggio/Completata e nessun controllo sovrapposizioni. Migrazione 2026_11_06_000200 predisposta ma NON eseguita localmente. Per richiesta esplicita: nessun test, build, migrazione, connessione WAHA o invio di prova per questa tranche; non attribuire alla nuova integrazione i test della precedente modifica. Configurazione/deploy e limiti in WAHA_VEHICLE_COMMITMENTS.md. Nessuna nuova dipendenza o modifica JavaScript.
+
+
+## 11 novembre 2026 - Pratica, manifesti autonomi e occupazioni live
+
+Riorganizzate le schede in Defunto (documento facoltativo con scadenza illimitata, camera ardente, trasporto/documentazione), Familiare delegante e Note. Campi comunali/finalità/date sincronizzati; BOLLO sui documenti ordinari di tre pagine e delega separata su richiesta. Archivio Manifesti indipendente dalle pratiche, dati/editor/duplica/PDF/versioni e collegamento manuale con avviso sui nominativi esistenti; migrazione di dati/composizioni/upload preesistenti senza spostare gli originali. Stanze e intervalli d’impegno mezzo, controlli sovrapposizioni transazionali e override esplicito, dashboard polling 5s con barre. WAHA rimosso; conferma impegno poi apertura WhatsApp manuale al +39 329 643 0362. Avvisi modifiche non salvate e azioni stampa/download degli upload. Nuove migrazioni 2026_11_11_000100 e 000200 predisposte, NON eseguite localmente. Solo controlli statici PHP/Blade/firme e Pint: nessun test funzionale o invio, come richiesto. Nessuna nuova dipendenza/bundle. scheduler.php per attività PHP CLI Plesk ogni minuto; il live non dipende da cron o websocket. Istruzioni complete in RELEASE_2026-11-11.md.
+
+Verifica statica conclusiva: 52 file PHP, 46 classi/trait caricati senza bootstrap applicativo e 13 viste Blade compilate per il controllo sintattico; Pint e controllo sintassi JS superati. Nessun accesso DB o test funzionale per questa release.

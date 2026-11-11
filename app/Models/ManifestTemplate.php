@@ -28,10 +28,10 @@ class ManifestTemplate extends Model
     public function isUsed(): bool
     {
         if (array_key_exists('cases_exists', $this->getAttributes())) {
-            return $this->cases_exists || $this->documents_exists;
+            return $this->cases_exists || $this->documents_exists || ManifestRecord::whereIn('data->manifest_template_id', [$this->id, (string) $this->id])->exists();
         }
 
-        return $this->cases()->exists() || $this->documents()->exists();
+        return $this->cases()->exists() || $this->documents()->exists() || ManifestRecord::whereIn('data->manifest_template_id', [$this->id, (string) $this->id])->exists();
     }
 
     protected static function booted(): void

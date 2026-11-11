@@ -18,7 +18,7 @@ class DocumentsRelationManager extends RelationManager
     {
         return $table->modifyQueryUsing(fn ($query) => $query->whereHas('funeralCase', fn ($cases) => $cases->visibleTo(auth()->user())))->columns([
             TextColumn::make('kind')->label('Contenuto')->formatStateUsing(fn ($state) => match ($state) {
-                'manifest' => 'Manifesto', 'prelapide' => 'Prelapide', default => 'Documento'
+                'mandate' => 'Delega', 'manifest' => 'Manifesto', 'prelapide' => 'Prelapide', default => 'Documento'
             }),
             TextColumn::make('case_type')->label('Procedura al momento della stampa')->formatStateUsing(fn ($state) => CaseType::from($state)->getLabel()),
             TextColumn::make('version')->label('Versione'), TextColumn::make('created_at')->label('Generato il')->dateTime('d/m/Y H:i'),

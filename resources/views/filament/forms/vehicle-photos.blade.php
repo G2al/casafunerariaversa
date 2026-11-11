@@ -10,7 +10,7 @@
         @else
             <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
                 @foreach($photos as $index => $path)
-                    <a wire:key="vehicle-photo-{{ $vehicle->id }}-{{ md5($path) }}" href="{{ route('private.vehicle-photo', [$vehicle, $index]) }}" target="_blank" rel="noopener noreferrer">
+                    <a wire:key="vehicle-photo-{{ $vehicle->id }}-{{ md5($path) }}" href="{{ route('private.file-present', ['vehicle-photo',$vehicle->id,$index]) }}" target="_blank" rel="noopener noreferrer">
                         <img src="{{ route('private.vehicle-photo', [$vehicle, $index]) }}" alt="Foto {{ $loop->iteration }} del mezzo {{ $vehicle->plate }}" loading="lazy" style="width:100%;height:150px;object-fit:contain;border:1px solid #aaa;border-radius:8px">
                     </a>
                 @endforeach

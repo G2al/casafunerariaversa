@@ -26,10 +26,10 @@ class FuneralVehicle extends Model
     public function isUsed(): bool
     {
         if (array_key_exists('funeral_cases_exists', $this->getAttributes()) && array_key_exists('prior_transfers_exists', $this->getAttributes())) {
-            return $this->funeral_cases_exists || $this->prior_transfers_exists;
+            return $this->funeral_cases_exists || $this->prior_transfers_exists || VehicleCommitment::where('vehicle_id', $this->id)->exists();
         }
 
-        return $this->funeralCases()->exists() || $this->priorTransfers()->exists();
+        return $this->funeralCases()->exists() || $this->priorTransfers()->exists() || VehicleCommitment::where('vehicle_id', $this->id)->exists();
     }
 
     public function priorTransfers(): HasMany
@@ -54,7 +54,7 @@ class FuneralVehicle extends Model
         });
         static::deleted(fn (self $vehicle) => self::cleanupAttachments($vehicle->attachments ?? []));
         static::deleting(function (self $vehicle) {
-            if ($vehicle->funeralCases()->exists() || $vehicle->priorTransfers()->exists()) {
+            if ($vehicle->isUsed()) {
                 throw ValidationException::withMessages(['name' => 'Il mezzo è associato a una pratica. Disattivalo per conservarne lo storico.']);
             }
         });

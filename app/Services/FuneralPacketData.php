@@ -240,7 +240,7 @@ class FuneralPacketData
                 'witness_relationship' => $prefix === 'witness' ? ($details['witness_relationship'] ?? null) : null,
                 'type' => ($details[$prefix.'_document_type'] ?? null), 'number' => ($details[$prefix.'_document_number'] ?? null),
                 'issuer' => ($details[$prefix.'_document_issuer'] ?? null), 'issued_at' => $date($prefix.'_document_issued_at'),
-                'expires_at' => $date($prefix.'_document_expires_at'),
+                'expires_at' => $prefix === 'identity' && ! empty($details['identity_document_unlimited']) ? 'Illimitata' : $date($prefix.'_document_expires_at'),
             ],
             'transport_purpose' => $details['transport_purpose'] ?? null,
             'ashes' => $case->type === CaseType::Cremation ? [
@@ -270,6 +270,13 @@ class FuneralPacketData
     private function details(FuneralCase $case): array
     {
         $details = $case->cremation_details ?? [];
+        foreach (['transport_authorization_issuer', 'report_place', 'declaration_place'] as $field) {
+            $details[$field] = $case->competent_city;
+        }
+        $details['declaration_date'] = $details['transport_authorization_date'] ?? null;
+        if (isset(['entombment' => 'Tumulato', 'burial' => 'Inumato'][$case->burial_type])) {
+            $details['transport_purpose'] = ['entombment' => 'Tumulato', 'burial' => 'Inumato'][$case->burial_type];
+        }
         if (collect(['type', 'number', 'issuer', 'issued_at', 'expires_at'])->contains(fn ($field) => filled($details['contact_document_'.$field] ?? null))) {
             $type = IdentityDocumentType::tryFrom($details['contact_document_type'] ?? '');
             $details['witness_name'] = trim($case->contact_first_name.' '.$case->contact_last_name);

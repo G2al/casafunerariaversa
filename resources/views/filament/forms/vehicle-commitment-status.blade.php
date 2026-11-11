@@ -1,25 +1,12 @@
-@php
-    $entry = \App\Filament\Support\VehicleCommitmentForm::entry($getRecord());
-    $snapshot = $entry?->snapshot ?? [];
-    $confirmed = $entry?->confirmed_snapshot;
-@endphp
-<div style="padding:14px;border:1px solid #aaa;border-radius:8px;display:grid;gap:8px">
-    @if($entry)
-        <p><strong>Ultimo impegno registrato:</strong> {{ $snapshot['vehicle_name'] ?? '' }} · {{ $snapshot['plate'] ?? '' }} · {{ $snapshot['transport_at'] ?? '' }}</p>
-        <p><strong>WhatsApp:</strong>
-            @switch($entry->status)
-                @case('sent') Accettato da WAHA il {{ $entry->sent_at?->format('d/m/Y H:i') }}. @break
-                @case('sending') Invio avviato il {{ $entry->attempted_at->format('d/m/Y H:i') }}. @break
-                @case('failed') Invio non riuscito. @break
-                @default Esito da verificare su WhatsApp.
-            @endswitch
-        </p>
-        @if($entry->error)<p>{{ $entry->error }}</p>@endif
-        @if($confirmed && $entry->status !== 'sent')
-            <p>Ultimo impegno comunicato con conferma WAHA: {{ $confirmed['plate'] }} · {{ $confirmed['transport_at'] }}.</p>
-        @endif
-        <p>Se modifichi i dati, premi «Aggiorna impegno» per comunicarli. Salvare la pratica da solo non invia messaggi.</p>
-    @else
-        <p>Nessun mezzo ancora impegnato per questa pratica. Seleziona il mezzo, compila data e ora trasporto e premi «Impegna mezzo».</p>
-    @endif
+@php $entry=\App\Filament\Support\VehicleCommitmentForm::entry($getRecord()); @endphp
+<div style="padding:14px;border:1px solid #aaa;border-radius:8px">
+@if($entry?->status==='committed')
+<p><strong>Impegno registrato:</strong> {{ $entry->snapshot['vehicle_name'] }} · {{ $entry->snapshot['plate'] }} · {{ $entry->starts_at?->format('d/m/Y H:i') }} · {{ $entry->ends_at?->format('d/m/Y H:i') }}</p>
+<p>Direttore tecnico: {{ $entry->snapshot['director'] ?? '' }}. L’apertura di WhatsApp non certifica l’invio del messaggio.</p>
+@if((string)$get('vehicle_id')!==(string)$entry->vehicle_id || (string)$get('transport_at')!==$entry->starts_at?->format('Y-m-d H:i:s') || (string)$get('transport_ends_at')!==$entry->ends_at?->format('Y-m-d H:i:s'))
+<p>Per applicare e comunicare variazioni, conferma nuovamente l’impegno. Il semplice salvataggio non modifica una prenotazione già confermata.</p>
+@endif
+@else
+<p>Salva la pratica, poi usa «Conferma impegno e apri WhatsApp» per prenotare il mezzo.</p>
+@endif
 </div>

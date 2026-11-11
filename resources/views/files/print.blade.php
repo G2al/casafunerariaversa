@@ -1,0 +1,4 @@
+<!doctype html><html lang="it"><head><meta charset="utf-8"><title>Stampa allegato</title><style>body{margin:0;font-family:Arial}nav{padding:12px;background:#eee;display:flex;gap:16px}img{display:block;max-width:100%;max-height:90vh;margin:auto}iframe{width:100%;height:90vh;border:0}@media print{nav{display:none}img{max-height:100vh}}</style></head><body>
+<nav><button onclick="{{ $pdf ? 'document.getElementById(\'file\').contentWindow.focus();document.getElementById(\'file\').contentWindow.print()' : 'window.print()' }}">Stampa</button><a href="{{ $download }}">Scarica file</a><a href="{{ $source }}" target="_blank" rel="noopener">Apri originale</a></nav>
+@if($pdf)<iframe id="file" src="{{ $source }}" title="Documento PDF"></iframe>@else<img src="{{ $source }}" alt="Allegato da stampare">@endif
+</body></html>

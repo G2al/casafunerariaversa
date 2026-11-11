@@ -1,5 +1,7 @@
 # Impegno mezzo e WhatsApp
 
+> Documento storico superato l'11 novembre 2026: WAHA è stato rimosso e sostituito da conferma dell'impegno e apertura manuale di WhatsApp al +39 329 643 0362. Seguire RELEASE_2026-11-11.md per configurazione e comportamento attuali. Le istruzioni WAHA sottostanti non vanno più applicate.
+
 Nella scheda Trasporto della pratica, selezionando un mezzo si vedono le foto caricate in Mezzi. I PDF del mezzo non vengono mostrati nella galleria. Le foto sono private e disponibili agli utenti attivi che possono creare pratiche; i mezzi disattivati restano consultabili dall'amministratore e dagli operatori con una propria pratica associata. Gli altri allegati del mezzo restano riservati all'amministratore.
 
 ## Configurazione sul server

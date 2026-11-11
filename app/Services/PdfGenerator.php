@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AuditEvent;
 use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
+use App\Models\ManifestRecord;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -14,27 +15,31 @@ use Illuminate\Validation\ValidationException;
 
 class PdfGenerator
 {
-    public function render(FuneralCase $case, string $kind): array
+    public function render(FuneralCase|ManifestRecord $case, string $kind): array
     {
         Gate::authorize('view', $case);
-        abort_unless(in_array($kind, ['document', 'manifest', 'prelapide'], true), 404);
+        if ($case instanceof FuneralCase && $kind === 'manifest' && $case->manifest_record_id) {
+            return $this->render(ManifestRecord::findOrFail($case->manifest_record_id), 'manifest');
+        }
+        abort_unless(in_array($kind, ['document', 'mandate', 'manifest', 'prelapide'], true), 404);
         $editor = app(ManifestEditor::class);
         $editor->kind = $kind;
         $customManifest = in_array($kind, ['manifest', 'prelapide'], true) && $case->{$editor->field()};
-        $data = $customManifest ? $editor->pdfData($case) : app(DocumentData::class)->assemble($case, $kind);
+        $data = $customManifest ? $editor->pdfData($case) : app(DocumentData::class)->assemble($case, $kind === 'mandate' ? 'document' : $kind);
         if ($kind === 'manifest' && ! $customManifest) {
             $data['layout'] = app(ManifestLayout::class)->fit($data);
         }
         if ($kind === 'prelapide' && ! $customManifest) {
             $data['layout'] = app(PrelapideLayout::class)->scene($data);
         }
+        $data['mandate_only'] = $kind === 'mandate';
         $view = match ($kind) {
             'manifest' => $customManifest ? 'pdf.manifest-editor' : 'pdf.manifest', 'prelapide' => $customManifest ? 'pdf.manifest-editor' : 'pdf.prelapide', default => 'pdf.'.$case->type->value
         };
-        $expectedPages = $kind === 'document' && $case->transport_enabled ? 4 : 1;
-        $cremationRequest = $kind === 'document';
+        $expectedPages = $kind === 'document' && $case->transport_enabled ? 3 : 1;
+        $cremationRequest = in_array($kind, ['document', 'mandate'], true);
         $fontSizes = match ($kind) {
-            'document' => [9.2, 8.8, 8.4, 8.0, 7.6, 7.2],
+            'document', 'mandate' => [9.2, 8.8, 8.4, 8.0, 7.6, 7.2],
             default => [null],
         };
         foreach ($fontSizes as $fontSize) {

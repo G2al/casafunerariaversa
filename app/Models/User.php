@@ -74,7 +74,8 @@ class User extends Authenticatable implements FilamentUser
     public function hasHistoricalRecords(): bool
     {
         return FuneralCase::withTrashed()->where(fn ($query) => $query->where('created_by', $this->id)->orWhere('operator_id', $this->id))->exists()
-            || FuneralDocument::where('created_by', $this->id)->exists();
+            || FuneralDocument::where('created_by', $this->id)->exists()
+            || ManifestRecord::where('operator_id', $this->id)->orWhere('created_by', $this->id)->exists();
     }
 
     public function save(array $options = [])

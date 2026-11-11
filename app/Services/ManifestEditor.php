@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AuditEvent;
 use App\Models\FuneralCase;
+use App\Models\ManifestRecord;
 use App\Models\ManifestTemplate;
 use App\Models\Symbol;
 use App\Models\SymbolFolder;
@@ -23,12 +24,25 @@ class ManifestEditor
 
     public string $kind = 'manifest';
 
+    private function recordRoute(FuneralCase|ManifestRecord $record, string $action, ?int $attachment = null): string
+    {
+        if ($record instanceof ManifestRecord) {
+            return route('private.manifests.'.$action, $attachment ? [$record, $attachment] : [$record]);
+        }
+
+        return match ($action) {
+            'preview' => route('private.preview', [$record, $this->kind]),
+            'attachment' => route('private.manifest-editor.attachment', [$record, $attachment]),
+            default => route('private.manifest-editor.'.$action, [$record, 'kind' => $this->kind]),
+        };
+    }
+
     public function field(): string
     {
         return $this->kind === 'prelapide' ? 'prelapide_layout' : 'manifest_layout';
     }
 
-    public function bootstrap(FuneralCase $case): array
+    public function bootstrap(FuneralCase|ManifestRecord $case): array
     {
         $this->authorize($case);
         $data = app(DocumentData::class)->assemble($case, $this->kind);
@@ -48,19 +62,19 @@ class ManifestEditor
         return [
             'scene' => $saved['scene'] ?? $automatic,
             'symbolFolders' => SymbolFolder::orderBy('name')->get(['id', 'name'])->toArray(),
-            'catalog' => $this->catalog($case), 'uploadUrl' => route('private.manifest-editor.upload', $case), 'kind' => $this->kind,
+            'catalog' => $this->catalog($case), 'uploadUrl' => $this->recordRoute($case, 'upload'), 'kind' => $this->kind,
             'automatic' => $automatic, 'automaticError' => $automaticError,
             'assets' => $saved['assets'] ?? $this->assets($case, $data),
             'currentAssets' => $this->assets($case, $data),
             'source' => $saved['source_stamp'] ?? $this->stamp($data), 'currentSource' => $this->stamp($data), 'revision' => $saved['revision'] ?? null,
             'stale' => $saved && ($saved['source_stamp'] ?? null) !== $this->stamp($data),
-            'saveUrl' => route('private.manifest-editor.save', [$case, 'kind' => $this->kind]),
-            'resetUrl' => route('private.manifest-editor.reset', [$case, 'kind' => $this->kind]),
-            'previewUrl' => route('private.preview', [$case, $this->kind]),
+            'saveUrl' => $this->recordRoute($case, 'save'),
+            'resetUrl' => $this->recordRoute($case, 'reset'),
+            'previewUrl' => $this->recordRoute($case, 'preview'),
         ];
     }
 
-    public function save(FuneralCase $case, array $input): string
+    public function save(FuneralCase|ManifestRecord $case, array $input): string
     {
         $this->authorize($case);
         $scene = $this->validateScene($input['scene'] ?? []);
@@ -71,11 +85,11 @@ class ManifestEditor
         }
         try {
             return DB::transaction(function () use ($case, $input, $scene, $path) {
-                $locked = FuneralCase::whereKey($case->id)->lockForUpdate()->firstOrFail();
+                $locked = $case->newQuery()->whereKey($case->id)->lockForUpdate()->firstOrFail();
                 $this->authorize($locked);
                 $this->checkRevision($locked, $input['revision'] ?? null);
                 $data = app(DocumentData::class)->assemble($locked, $this->kind);
-                abort_unless(hash_equals($this->stamp($data), (string) ($input['source'] ?? '')), 409, 'I dati della pratica sono cambiati. Ricarica i dati prima di salvare.');
+                abort_unless(hash_equals($this->stamp($data), (string) ($input['source'] ?? '')), 409, 'I dati salvati sono cambiati. Ricarica i dati prima di salvare.');
                 $assets = $this->assets($locked, $data);
                 $frozen = $locked->{$this->field()}['assets'] ?? [];
                 foreach (array_unique(array_filter(array_merge(array_column($scene['elements'], 'asset'), [$scene['backgroundAsset'] ?? null]))) as $key) {
@@ -100,7 +114,7 @@ class ManifestEditor
                 ];
                 $locked->save();
                 // Conserva le immagini delle revisioni con il fascicolo, per poi rimuoverle nel purge.
-                AuditEvent::create(['user_id' => auth()->id(), 'funeral_case_id' => $locked->id, 'event' => $this->field().'_saved', 'changed_fields' => ['image_path' => $path, 'revision' => $revision]]);
+                AuditEvent::create(['user_id' => auth()->id(), 'funeral_case_id' => $locked instanceof ManifestRecord ? null : $locked->id, 'event' => $this->field().'_saved', 'changed_fields' => ['image_path' => $path, 'revision' => $revision, 'manifest_id' => $locked instanceof ManifestRecord ? $locked->id : null]]);
 
                 return $revision;
             });
@@ -110,20 +124,20 @@ class ManifestEditor
         }
     }
 
-    public function reset(FuneralCase $case, ?string $revision): void
+    public function reset(FuneralCase|ManifestRecord $case, ?string $revision): void
     {
         $this->authorize($case);
         DB::transaction(function () use ($case, $revision) {
-            $locked = FuneralCase::whereKey($case->id)->lockForUpdate()->firstOrFail();
+            $locked = $case->newQuery()->whereKey($case->id)->lockForUpdate()->firstOrFail();
             $this->authorize($locked);
             $this->checkRevision($locked, $revision);
             $locked->{$this->field()} = null;
             $locked->save();
-            AuditEvent::create(['user_id' => auth()->id(), 'funeral_case_id' => $locked->id, 'event' => $this->field().'_reset', 'changed_fields' => []]);
+            AuditEvent::create(['user_id' => auth()->id(), 'funeral_case_id' => $locked instanceof ManifestRecord ? null : $locked->id, 'event' => $this->field().'_reset', 'changed_fields' => []]);
         });
     }
 
-    public function pdfData(FuneralCase $case): array
+    public function pdfData(FuneralCase|ManifestRecord $case): array
     {
         $saved = $case->{$this->field()};
         $path = $saved['image_path'] ?? '';
@@ -135,18 +149,18 @@ class ManifestEditor
         ];
     }
 
-    private function authorize(FuneralCase $case): void
+    private function authorize(FuneralCase|ManifestRecord $case): void
     {
         Gate::authorize('update', $case);
         abort_if($case->trashed(), 403);
     }
 
-    private function checkRevision(FuneralCase $case, ?string $revision): void
+    private function checkRevision(FuneralCase|ManifestRecord $case, ?string $revision): void
     {
         abort_unless(($case->{$this->field()}['revision'] ?? null) === $revision, 409, 'La composizione è stata modificata in un’altra finestra. Ricarica prima di salvare.');
     }
 
-    private function stamp(array $data): string
+    public function stamp(array $data): string
     {
         return hash('sha256', json_encode(Arr::except($data, ['generated_at']), JSON_UNESCAPED_UNICODE));
     }
@@ -171,16 +185,16 @@ class ManifestEditor
         return $bytes;
     }
 
-    public function catalog(FuneralCase $case): array
+    public function catalog(FuneralCase|ManifestRecord $case): array
     {
         return [
             'symbols' => Symbol::where('is_active', true)->orderBy('sort_order')->orderBy('id')->get()->map(fn ($s) => ['folder' => $s->symbol_folder_id, 'key' => 'symbol_'.$s->id, 'title' => $s->title, 'url' => route('private.symbol', $s)])->all(),
             'frames' => ManifestTemplate::where('is_active', true)->orderBy('sort_order')->get()->map(fn ($s) => ['key' => 'frame_'.$s->id, 'title' => $s->title, 'url' => route('private.template', $s)])->all(),
-            'uploads' => DB::table('editor_attachments')->where('funeral_case_id', $case->id)->get()->map(fn ($s) => ['key' => 'upload_'.$s->id, 'title' => 'Immagine '.$s->id, 'url' => route('private.manifest-editor.attachment', [$case, $s->id])])->all(),
+            'uploads' => DB::table('editor_attachments')->where($case instanceof ManifestRecord ? 'manifest_record_id' : 'funeral_case_id', $case->id)->get()->map(fn ($s) => ['key' => 'upload_'.$s->id, 'title' => 'Immagine '.$s->id, 'url' => $this->recordRoute($case, 'attachment', $s->id)])->all(),
         ];
     }
 
-    private function assets(FuneralCase $case, array $data): array
+    private function assets(FuneralCase|ManifestRecord $case, array $data): array
     {
         $assets = Arr::only($data, ['background', 'photo', 'logo', 'symbol']);
         // Le immagini di catalogo vengono risolte solo al salvataggio o su richiesta del client.
@@ -193,7 +207,7 @@ class ManifestEditor
         return $assets;
     }
 
-    private function freezeAssets(FuneralCase $case, array $assets): array
+    private function freezeAssets(FuneralCase|ManifestRecord $case, array $assets): array
     {
         $paths = [];
         foreach (Symbol::where('is_active', true)->get() as $s) {
@@ -202,7 +216,7 @@ class ManifestEditor
         foreach (ManifestTemplate::where('is_active', true)->get() as $s) {
             $paths['frame_'.$s->id] = $s->image_path;
         }
-        foreach (DB::table('editor_attachments')->where('funeral_case_id', $case->id)->get() as $s) {
+        foreach (DB::table('editor_attachments')->where($case instanceof ManifestRecord ? 'manifest_record_id' : 'funeral_case_id', $case->id)->get() as $s) {
             $paths['upload_'.$s->id] = $s->image_path;
         }
         foreach ($assets as $key => $value) {

@@ -6,6 +6,8 @@ use App\Models\AuditEvent;
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
 use App\Models\FuneralDocument;
+use App\Models\ManifestExport;
+use App\Models\ManifestRecord;
 use App\Models\ManifestTemplate;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -93,6 +95,9 @@ class DeleteFuneralCase
     {
         return FuneralCase::withTrashed()->where(fn ($query) => $query->where('photo_path', $path)->orWhere('identity_front_path', $path)->orWhere('identity_back_path', $path)->orWhere('delegate_identity_front_path', $path)->orWhere('delegate_identity_back_path', $path)->orWhere('death_certificate_path', $path)->orWhere('istat_path', $path)->orWhere('manifest_layout->image_path', $path)->orWhere('prelapide_layout->image_path', $path))->exists()
             || FuneralDocument::where('file_path', $path)->exists()
+            || ManifestRecord::where('data->photo_path', $path)->orWhere('manifest_layout->image_path', $path)->exists()
+            || DB::table('editor_attachments')->where('image_path', $path)->exists()
+            || ManifestExport::where('file_path', $path)->exists()
             || ManifestTemplate::where('image_path', $path)->exists()
             || (CompanySettings::current()['logo_path'] ?? null) === $path;
     }

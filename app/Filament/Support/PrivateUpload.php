@@ -4,6 +4,7 @@ namespace App\Filament\Support;
 
 use App\Models\CompanySettings;
 use App\Models\FuneralCase;
+use App\Models\ManifestRecord;
 use App\Models\ManifestTemplate;
 use App\Models\Symbol;
 use App\Services\OptimizedUpload;
@@ -20,7 +21,7 @@ class PrivateUpload
     {
         return FileUpload::make($name)->label($label)->disk('local')->directory($directory)->visibility('private')
             ->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, $directory))
-            ->image()->acceptedFileTypes($directory === 'symbols' ? ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'] : ['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->preventFilePathTampering()
+            ->openable()->downloadable()->hintActions(FilePresentationActions::make($name))->image()->acceptedFileTypes($directory === 'symbols' ? ['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml'] : ['image/jpeg', 'image/png', 'image/webp'])->maxSize(10240)->preventFilePathTampering()
             ->rules([fn () => function (string $attribute, mixed $value, \Closure $fail) use ($directory) {
                 if (! $value instanceof UploadedFile) {
                     return;
@@ -43,6 +44,7 @@ class PrivateUpload
                     return null;
                 }
                 $url = match (true) {
+                    $record instanceof ManifestRecord => route('private.manifests.photo', $record),
                     $record instanceof FuneralCase => route('private.photo', $record),
                     $record instanceof Symbol => route('private.symbol', $record),
                     $record instanceof ManifestTemplate => route('private.template', $record),

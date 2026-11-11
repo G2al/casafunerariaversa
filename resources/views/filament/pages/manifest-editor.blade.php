@@ -7,12 +7,12 @@
             @endforeach
         @endforeach
     </style>
-    <div class="me" data-manifest-editor data-url="{{ route('private.manifest-editor.show', [$this->getRecord(), 'kind' => $this->editorKind]) }}" wire:ignore>
+    <div class="me" data-manifest-editor data-url="{{ $this->getRecord() instanceof \App\Models\ManifestRecord ? route('private.manifests.show',$this->getRecord()) : route('private.manifest-editor.show', [$this->getRecord(), 'kind' => $this->editorKind]) }}" wire:ignore>
         <div class="me-top">
             <div><strong>{{ $this->getRecord()->code }} · {{ $this->getRecord()->full_name }}</strong><p>Angoli: ingrandisci testi e immagini. Lati del testo: cambia la larghezza. Sopra/sotto: allunga o schiaccia le lettere. Doppio clic: modifica il testo.</p></div>
-            <a class="me-button" href="{{ \App\Filament\Resources\FuneralCaseResource::getUrl('edit', ['record' => $this->getRecord()]) }}">Torna alla pratica</a>
+            <a class="me-button" href="{{ $this->getRecord() instanceof \App\Models\ManifestRecord ? \App\Filament\Resources\ManifestRecordResource::getUrl('edit',['record'=>$this->getRecord()]) : \App\Filament\Resources\FuneralCaseResource::getUrl('edit', ['record' => $this->getRecord()]) }}">Torna ai dati</a>
         </div>
-        <div class="me-notice" data-stale hidden>I dati della pratica sono cambiati dall’ultimo salvataggio. La composizione salvata resta invariata. Usa “Aggiorna dalla pratica” per ricaricare testi e immagini.</div>
+        <div class="me-notice" data-stale hidden>I dati del manifesto sono cambiati dall’ultimo salvataggio. La composizione salvata resta invariata. Usa “Aggiorna dai dati” per ricaricare testi e immagini.</div>
         <div class="me-toolbar" aria-label="Strumenti del manifesto">
             <button type="button" data-command="undo" title="Annulla ultima modifica">↶ Annulla</button>
             <button type="button" data-command="redo" title="Ripeti ultima modifica">↷ Ripeti</button>
@@ -22,7 +22,7 @@
             <button type="button" data-command="add-rect">+ Rettangolo</button>
             <button type="button" data-command="add-ellipse">+ Cerchio / ovale</button>
             <button type="button" data-command="add-triangle">+ Triangolo</button>
-            <button type="button" data-command="refresh">Aggiorna dalla pratica</button>
+            <button type="button" data-command="refresh">Aggiorna dai dati</button>
             <button type="button" data-command="reset">Ripristina automatico</button>
         </div>
         <div class="me-toolbar">

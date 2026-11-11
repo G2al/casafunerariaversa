@@ -8,10 +8,19 @@ use App\Filament\Support\CommitsVehicle;
 use App\Filament\Support\FuneralCaseDeletionActions;
 use Filament\Actions\RestoreAction;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
 
 class EditCase extends EditRecord
 {
     use CommitsVehicle;
+
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $record->allowRoomOverlap = (bool) ($this->data['override_room_conflict'] ?? false);
+        $record->update($data);
+
+        return $record;
+    }
 
     protected static string $resource = FuneralCaseResource::class;
 
@@ -22,7 +31,7 @@ class EditCase extends EditRecord
 
     protected function getHeaderActions(): array
     {
-        return [...CaseActions::make(), FuneralCaseDeletionActions::single(), FuneralCaseDeletionActions::forceSingle(), RestoreAction::make()];
+        return [...CaseActions::make(), FuneralCaseDeletionActions::single()->unsavedChangesAlert(false), FuneralCaseDeletionActions::forceSingle()->unsavedChangesAlert(false), RestoreAction::make()->unsavedChangesAlert(false)];
     }
 
     protected function mutateFormDataBeforeSave(array $data): array

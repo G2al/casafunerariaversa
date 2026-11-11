@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\FilePresentationController;
 use App\Http\Controllers\ManifestEditorController;
+use App\Http\Controllers\ManifestRecordController;
 use App\Http\Controllers\PrivateFilesController;
 use App\Http\Middleware\ActiveUser;
 use Illuminate\Support\Facades\Route;
@@ -10,6 +12,15 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', ActiveUser::class])->prefix('private')->name('private.')->group(function () {
+    Route::get('file/{type}/{record}/{part?}', [FilePresentationController::class, 'show'])->whereNumber('record')->name('file-present');
+    Route::get('manifests/exports/{export}', [ManifestRecordController::class, 'export'])->name('manifests.export');
+    Route::get('manifests/{manifest}/editor', [ManifestRecordController::class, 'show'])->name('manifests.show');
+    Route::post('manifests/{manifest}/editor', [ManifestRecordController::class, 'save'])->name('manifests.save');
+    Route::delete('manifests/{manifest}/editor', [ManifestRecordController::class, 'reset'])->name('manifests.reset');
+    Route::get('manifests/{manifest}/preview', [ManifestRecordController::class, 'preview'])->name('manifests.preview');
+    Route::get('manifests/{manifest}/photo', [ManifestRecordController::class, 'photo'])->name('manifests.photo');
+    Route::post('manifests/{manifest}/upload', [ManifestRecordController::class, 'upload'])->name('manifests.upload');
+    Route::get('manifests/{manifest}/attachments/{attachment}', [ManifestRecordController::class, 'attachment'])->name('manifests.attachment');
     Route::get('vehicles/{vehicle}/photos/{index}', [PrivateFilesController::class, 'vehiclePhoto'])->whereNumber('index')->name('vehicle-photo');
     Route::get('vehicles/{vehicle}/attachments/{index}', [PrivateFilesController::class, 'vehicleAttachment'])->whereNumber('index')->name('vehicle-attachment');
     Route::get('symbols/{symbol}', [ManifestEditorController::class, 'symbol'])->name('symbol');

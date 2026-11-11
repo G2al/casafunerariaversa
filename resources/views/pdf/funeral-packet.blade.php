@@ -36,8 +36,9 @@ p { margin:0 0 4pt; } .center { text-align:center; } .strong { font-weight:bold;
         $director[$field] = $fill($director[$field]);
     }
 @endphp
-<div class="brand"><img src="{{ $data['logo'] }}" alt="Casa Funeraria Aversa"></div>
-@if($r['transport_enabled'])
+<div class="brand" style="{{ !($data['mandate_only'] ?? false) ? 'min-height:65pt' : '' }}"><img src="{{ $data['logo'] }}" alt="Casa Funeraria Aversa"></div>
+@if(!($data['mandate_only'] ?? false) && $r['transport_enabled'])
+<div style="position:absolute;right:0;top:0;width:100pt;height:65pt;border:1pt solid #000;text-align:center;line-height:65pt;color:#000">BOLLO</div>
 <h1>Domanda di autorizzazione per trasporto di salma</h1>
 <p><strong>Al Sig. Sindaco del Comune di {{ $r['competent_city'] }}</strong></p>
 <p class="subject">OGGETTO: Richiesta di autorizzazione per trasporto salma<br>
@@ -77,13 +78,15 @@ utilizzando il seguente personale dipendente, tutti assunti con contratto di lav
 <li>attestazione del pieno rispetto delle norme sulla sicurezza e salute dei lavoratori.</li>
 </ol>
 <div class="signature">{{ $isStandard ? 'IN FEDE' : 'IL RICHIEDENTE' }}<br><span class="write-line">&nbsp;</span></div>
-@foreach([2, 3, 4] as $page)
+@foreach([2, 3] as $page)
 <div class="packet-page {{ $page === 4 ? 'mandate' : '' }}">
     <div class="brand"><img src="{{ $data['logo'] }}" alt="Casa Funeraria Aversa"></div>
     @include('pdf.cremation-page-'.$page)
 </div>
 @endforeach
-@else
+@elseif($data['mandate_only'] ?? false)
 <div class="mandate">@include('pdf.cremation-page-4')</div>
+@else
+<p>Trasporto non previsto per questa pratica.</p>
 @endif
 </body></html>

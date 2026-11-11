@@ -16,7 +16,9 @@ class PrivateDocumentUpload
     {
         return FileUpload::make($field)->label($label)->disk('local')->directory($directory)->visibility('private')
             ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf'])->maxSize(10240)
-            ->preventFilePathTampering()->openable()->downloadable()
+            ->preventFilePathTampering()->openable()->downloadable()->hintActions(FilePresentationActions::make($field, match ($route) {
+                'private.identity' => 'identity-'.$parameter,'private.delegate-identity' => 'delegate-'.$parameter,default => $parameter
+            }))
             ->saveUploadedFileUsing(fn (UploadedFile $file) => app(OptimizedUpload::class)->store($file, $directory))
             ->rules([fn () => function (string $attribute, mixed $value, \Closure $fail) {
                 if (! $value instanceof UploadedFile) {
