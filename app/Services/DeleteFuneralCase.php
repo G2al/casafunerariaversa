@@ -41,6 +41,7 @@ class DeleteFuneralCase
                 'user_id' => auth()->id(), 'funeral_case_id' => null, 'event' => 'permanently_deleted',
                 'changed_fields' => ['code' => $locked->code, 'record_id' => $locked->id, 'pending_files' => $paths],
             ]);
+            OccupancyUpdates::changed();
             // I file si rimuovono solo dopo il commit. Se il disco non risponde,
             // l'elenco resta persistito per il successivo tentativo di pulizia.
             DB::afterCommit(function () use ($audit) {

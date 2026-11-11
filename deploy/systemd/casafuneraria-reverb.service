@@ -1,0 +1,24 @@
+[Unit]
+Description=Casa Funeraria - Laravel Reverb WebSocket
+After=network.target mariadb.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=casafuneraria.deviom_q6gbenkef0n
+Group=psacln
+WorkingDirectory=/var/www/vhosts/casafuneraria.deviommi.it/httpdocs
+ExecStart=/opt/plesk/php/8.3/bin/php artisan reverb:start --host=127.0.0.1 --port=8085
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=30
+LimitNOFILE=16384
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

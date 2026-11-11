@@ -1,0 +1,23 @@
+[Unit]
+Description=Casa Funeraria - Worker aggiornamenti realtime
+After=network.target mariadb.service casafuneraria-reverb.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=casafuneraria.deviom_q6gbenkef0n
+Group=psacln
+WorkingDirectory=/var/www/vhosts/casafuneraria.deviommi.it/httpdocs
+ExecStart=/opt/plesk/php/8.3/bin/php artisan queue:work database --queue=realtime --sleep=1 --tries=5 --timeout=20 --max-time=3600
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+TimeoutStopSec=35
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

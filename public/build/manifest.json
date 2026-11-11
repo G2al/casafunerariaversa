@@ -1,0 +1,47 @@
+{
+  "resources/css/app.css": {
+    "file": "assets/app-CgU90ZqJ.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/css/manifest-editor.css": {
+    "file": "assets/manifest-editor-DupsX-F8.css",
+    "src": "resources/css/manifest-editor.css",
+    "isEntry": true,
+    "name": "manifest-editor",
+    "names": [
+      "manifest-editor.css"
+    ]
+  },
+  "resources/css/occupancy-live.css": {
+    "file": "assets/occupancy-live-C0DACxO2.css",
+    "src": "resources/css/occupancy-live.css",
+    "isEntry": true,
+    "name": "occupancy-live",
+    "names": [
+      "occupancy-live.css"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-DMsN-rLE.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/manifest-editor.js": {
+    "file": "assets/manifest-editor-BhGxNCNZ.js",
+    "name": "manifest-editor",
+    "src": "resources/js/manifest-editor.js",
+    "isEntry": true
+  },
+  "resources/js/occupancy-live.js": {
+    "file": "assets/occupancy-live-DPu7pWcE.js",
+    "name": "occupancy-live",
+    "src": "resources/js/occupancy-live.js",
+    "isEntry": true
+  }
+}
