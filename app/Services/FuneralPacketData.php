@@ -270,10 +270,11 @@ class FuneralPacketData
     private function details(FuneralCase $case): array
     {
         $details = $case->cremation_details ?? [];
+        $details['identification_method'] ??= 'document';
         foreach (['transport_authorization_issuer', 'report_place', 'declaration_place'] as $field) {
             $details[$field] = $case->competent_city;
         }
-        $details['declaration_date'] = $details['transport_authorization_date'] ?? null;
+        $details['declaration_date'] = ! empty($details['report_at']) ? Carbon::parse($details['report_at'])->format('Y-m-d') : null;
         if (isset(['entombment' => 'Tumulato', 'burial' => 'Inumato'][$case->burial_type])) {
             $details['transport_purpose'] = ['entombment' => 'Tumulato', 'burial' => 'Inumato'][$case->burial_type];
         }

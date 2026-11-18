@@ -8,9 +8,12 @@ enum UserRole: string implements HasLabel
 {
     case Admin = 'admin';
     case Operator = 'operator';
+    case ServiceOrderOperator = 'service_order_operator';
 
     public function getLabel(): string
     {
-        return $this === self::Admin ? 'Amministratore' : 'Operatore';
+        return match ($this) {
+            self::Admin => 'Amministratore', self::Operator => 'Operatore', self::ServiceOrderOperator => 'Operatore ordine di servizio'
+        };
     }
 }

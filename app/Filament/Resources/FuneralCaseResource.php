@@ -132,16 +132,16 @@ class FuneralCaseResource extends Resource
         $groups['Trasporto'] = array_merge(
             array_map(fn ($field, $label) => match ($field) {
                 'burial_type' => Select::make($field)->label($label)->options(['burial' => 'Inumazione', 'entombment' => 'Tumulazione', 'other' => 'Altro'])->live()->afterStateUpdated(fn ($state, Set $set) => $set('cremation_details.transport_purpose', ['entombment' => 'Tumulato', 'burial' => 'Inumato'][$state] ?? null)),
-                'ceremony_at','transfer_at' => DateTimePicker::make($field)->label($label)->seconds(false),
+                'ceremony_at' => DateTimePicker::make($field)->label($label)->seconds(false),
                 default => TextInput::make($field)->label($label)->maxLength(255),
-            }, ['church', 'ceremony_city', 'ceremony_at', 'transfer_place', 'transfer_at', 'cemetery', 'burial_type'], ['Chiesa / parrocchia', 'Località del rito', 'Data e ora esequie', 'Luogo del trasferimento', 'Data e ora trasferimento', 'Cimitero di destinazione', 'Tipo di sepoltura']),
+            }, ['church', 'ceremony_city', 'ceremony_at', 'transfer_place', 'cemetery', 'burial_type'], ['Chiesa / parrocchia', 'Località del rito', 'Data e ora esequie', 'Luogo del trasferimento', 'Cimitero di destinazione', 'Tipo di sepoltura']),
             $groups['Trasporto']
         );
         $groups['Defunto'][] = PrivateUpload::make('photo_path', 'Fotografia del defunto (facoltativa)', 'photos');
         $groups['Camera ardente e rito'][] = Select::make('room_id')->label('Stanza')->options(fn () => Room::orderBy('name')->pluck('name', 'id'))->searchable()->live()->afterStateUpdated(fn (Set $set) => $set('override_room_conflict', false));
         $groups['Camera ardente e rito'][] = View::make('filament.forms.room-conflicts')->columnSpanFull();
         $groups['Camera ardente e rito'][] = Toggle::make('override_room_conflict')->visible(fn (Get $get, ?FuneralCase $record) => app(ReservationConflicts::class)->rooms($get('room_id'), $get('viewing_starts_at'), $get('viewing_ends_at'), $record?->id)->isNotEmpty())->label('Confermo a mia responsabilità l’occupazione della stanza anche in sovrapposizione')->default(false)->dehydrated(false);
-        $groups['Camera ardente e rito'][] = FuneralPacketForm::priorTransfer();
+
         $groups['Trasporto'][] = TextInput::make('transport_distance_km')->label('Distanza dichiarata (km)')->numeric()->minValue(0)->maxValue(999999.99)->default(100);
         $groups['Trasporto'][] = DateTimePicker::make('transport_ends_at')->label('Fine impegno mezzo')->seconds(false)->after('transport_at')->live(onBlur: true)->afterStateUpdated(fn (Set $set) => $set('override_vehicle_conflict', false));
         $groups['Trasporto'][] = Select::make('technical_director_id')->label('Direttore tecnico')->relationship('technicalDirector', 'name', fn (Builder $query) => $query->where('is_active', true)->where('is_technical_director', true))->searchable()->preload()->live();
@@ -152,7 +152,8 @@ class FuneralCaseResource extends Resource
         $groups['Familiare referente'][] = FuneralPacketForm::familyDocument();
         $groups['Familiare referente'][] = FuneralPacketForm::familyDelegant();
         $defunto = [Section::make('Dati del defunto')->schema($groups['Defunto'])->columns(2), IdentityDocumentForm::section(), CaseAttachmentForm::section(),
-            Section::make('Camera ardente')->schema($groups['Camera ardente e rito'])->columns(2),
+            FuneralPacketForm::priorTransfer(),
+            Section::make('Camera ardente')->schema($groups['Camera ardente e rito'])->columns(2)->visible(fn (Get $get) => in_array($get('type'), ['cremation', CaseType::Cremation], true) || (bool) $get('prior_transfer_enabled')),
             Section::make('Trasporto, rito e documentazione')->schema(array_merge($groups['Trasporto'], FuneralPacketForm::sections()))->columns(2),
             Section::make('Cremazione')->schema($groups['Cremazione'])->columns(2)->visible(fn (Get $get) => in_array($get('type'), ['cremation', CaseType::Cremation], true)),
             ManifestLinkForm::section(),
@@ -165,11 +166,12 @@ class FuneralCaseResource extends Resource
                 Hidden::make('transport_enabled')->default(true)->formatStateUsing(fn () => true)->dehydrateStateUsing(fn () => true),
                 Select::make('status')->label('Stato')->options(CaseStatus::class)->required()->default(CaseStatus::Draft),
                 DateTimePicker::make('registered_at')->label('Presa in carico')->required()->default(now())->seconds(false),
-                Select::make('operator_id')->label('Operatore proprietario')->relationship('owner', 'name', fn (Builder $query) => $query->where('is_active', true))->searchable()->preload()->visible(fn () => auth()->user()?->isAdmin()),
+                Select::make('operator_id')->label('Operatore proprietario')->relationship('owner', 'name', fn (Builder $query) => $query->where('is_active', true)->whereIn('role', ['admin', 'operator']))->searchable()->preload()->visible(fn () => auth()->user()?->isAdmin()),
             ])->columns(2)->columnSpanFull(),
             Tabs::make('Scheda')->tabs([
                 Tab::make('Defunto')->schema($defunto),
                 Tab::make('Familiare delegante')->schema([Section::make('Familiare delegante')->schema($groups['Familiare referente'])->columns(2)]),
+                Tab::make('Ordine di servizio')->schema([View::make('filament.forms.service-order-tab')->columnSpanFull()]),
                 Tab::make('Note interne')->schema([Textarea::make('internal_notes')->label('Note interne')->maxLength(10000)->rows(8)]),
             ])->columnSpanFull()->persistTabInQueryString(),
         ]);
@@ -192,6 +194,7 @@ class FuneralCaseResource extends Resource
     public static function prepareFormData(array $data): array
     {
         unset($data['manifest_layout'], $data['prelapide_layout']);
+        $data['cremation_details']['identification_method'] ??= 'document';
 
         $data['manifest_options'] = array_replace([
             'show_photo' => true, 'show_viewing' => true, 'show_ceremony' => true,

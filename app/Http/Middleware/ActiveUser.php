@@ -13,6 +13,8 @@ class ActiveUser
             abort(403, 'Account non attivo o senza ruolo.');
         }
 
+        abort_if($request->user()?->isServiceOrderOperator() && $request->is('private/*'), 403);
+
         return $next($request);
     }
 }

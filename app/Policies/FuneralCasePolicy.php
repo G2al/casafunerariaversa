@@ -9,7 +9,7 @@ class FuneralCasePolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->is_active && $user->role !== null;
+        return $user->is_active && $user->role !== null && ! $user->isServiceOrderOperator();
     }
 
     public function create(User $user): bool

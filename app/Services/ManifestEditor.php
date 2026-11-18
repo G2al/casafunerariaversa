@@ -8,6 +8,7 @@ use App\Models\ManifestRecord;
 use App\Models\ManifestTemplate;
 use App\Models\Symbol;
 use App\Models\SymbolFolder;
+use Dompdf\Dompdf;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -45,7 +46,7 @@ class ManifestEditor
     public function bootstrap(FuneralCase|ManifestRecord $case): array
     {
         $this->authorize($case);
-        $data = app(DocumentData::class)->assemble($case, $this->kind);
+        $data = app(DocumentData::class)->assemble($case, $this->kind, true);
         $saved = $case->{$this->field()};
         try {
             $automatic = $this->automatic($data);
@@ -60,6 +61,7 @@ class ManifestEditor
         }
 
         return [
+            'fields' => $case instanceof ManifestRecord ? app(ManifestEditorFields::class)->values($case) : null,
             'scene' => $saved['scene'] ?? $automatic,
             'symbolFolders' => SymbolFolder::orderBy('name')->get(['id', 'name'])->toArray(),
             'catalog' => $this->catalog($case), 'uploadUrl' => $this->recordRoute($case, 'upload'), 'kind' => $this->kind,
@@ -88,8 +90,12 @@ class ManifestEditor
                 $locked = $case->newQuery()->whereKey($case->id)->lockForUpdate()->firstOrFail();
                 $this->authorize($locked);
                 $this->checkRevision($locked, $input['revision'] ?? null);
-                $data = app(DocumentData::class)->assemble($locked, $this->kind);
+                $data = app(DocumentData::class)->assemble($locked, $this->kind, true);
                 abort_unless(hash_equals($this->stamp($data), (string) ($input['source'] ?? '')), 409, 'I dati salvati sono cambiati. Ricarica i dati prima di salvare.');
+                if ($locked instanceof ManifestRecord && array_key_exists('fields', $input)) {
+                    app(ManifestEditorFields::class)->apply($locked, $input['fields'] ?? [], $scene);
+                    $data = app(DocumentData::class)->assemble($locked, $this->kind, true);
+                }
                 $assets = $this->assets($locked, $data);
                 $frozen = $locked->{$this->field()}['assets'] ?? [];
                 foreach (array_unique(array_filter(array_merge(array_column($scene['elements'], 'asset'), [$scene['backgroundAsset'] ?? null]))) as $key) {
@@ -275,11 +281,37 @@ class ManifestEditor
         $layout = app(ManifestLayout::class)->fit($data);
         $elements = [];
         foreach (collect($layout['lines'])->groupBy('key') as $key => $lines) {
+            if ($key === 'name') {
+                continue;
+            }
             $first = $lines->first();
             $elements[] = array_replace($this->element($key, 'text', $first['x'], $first['y'], $first['width'], $lines->count() * $first['size'] * 1.5), [
                 'fontFamily' => $first['fontFamily'] ?? 'DejaVu Serif', 'color' => $first['color'] ?? '#000000',
                 'text' => $lines->pluck('text')->implode("\n"), 'fontSize' => $first['size'], 'bold' => $first['bold'],
             ]);
+        }
+        $area = $layout['area'];
+        $metrics = (new Dompdf)->getFontMetrics();
+        $font = $metrics->getFont('DejaVu Sans', 'bold');
+        $size = collect($layout['lines'])->firstWhere('key', 'name')['size'] ?? 40;
+        $names = [mb_strtoupper($data['first_name'] ?? ''), mb_strtoupper($data['last_name'] ?? '')];
+        do {
+            $widths = array_map(fn ($name) => max(35, $metrics->getTextWidth($name !== '' ? $name : 'Nome', $font, $size) + 4), $names);
+            $gap = $metrics->getTextWidth(' ', $font, $size);
+            if (array_sum($widths) + $gap <= $area['w'] || $size <= 6) {
+                break;
+            }
+            $size -= .5;
+        } while (true);
+        if ($names === ['', '']) {
+            $widths = [($area['w'] - $gap) / 2, ($area['w'] - $gap) / 2];
+        }
+        $x = $area['x'] + max(0, ($area['w'] - array_sum($widths) - $gap) / 2);
+        foreach (['first_name', 'last_name'] as $index => $field) {
+            $elements[] = array_replace($this->element($field, 'text', $x, $area['y'] + $area['h'] * .075, $widths[$index], $size * 1.5), [
+                'text' => $names[$index], 'fontSize' => $size, 'bold' => true, 'fontFamily' => 'DejaVu Sans',
+            ]);
+            $x += $widths[$index] + $gap;
         }
         $separator = $layout['separator'];
         $elements[] = $this->element('separator', 'rect', $separator['x'], $separator['y'], $separator['width'], 1) + ['fill' => '#000000', 'stroke' => '#000000', 'strokeWidth' => 0, 'fontSize' => 12, 'bold' => false];

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\FuneralCase;
+use App\Models\ServiceOrder;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
@@ -52,13 +53,29 @@ class CaseReports
         return $months;
     }
 
+    public function details(User $user, array $filters = []): array
+    {
+        abort_unless($user->isAdmin(), 403);
+
+        return $this->query($user, $filters)->with(['owner', 'serviceOrder'])->orderBy('registered_at')->get()->map(function ($case) {
+            $order = $case->serviceOrder;
+            $type = $order?->coffin_type ?? ($case->cremation_details['coffin_type'] ?? null);
+
+            return ['operator' => $case->owner?->name ?? 'Non assegnato', 'code' => $case->code, 'name' => $case->full_name,
+                'type' => $case->type->getLabel(), 'coffin_type' => ServiceOrder::coffinTypes()[$type] ?? 'Non selezionato',
+                'coffin_name' => $order?->coffin_name ?? 'Da indicare nell’ordine', 'quantity' => filled($type) ? 1 : 0,
+                'status' => ['draft' => 'Bozza', 'submitted' => 'Inviato', 'confirmed' => 'Confermato'][$order?->status] ?? 'Nessun ordine',
+                'items' => $order?->items ?? []];
+        })->all();
+    }
+
     public function operators(User $user, array $filters = []): array
     {
         abort_unless($user->isAdmin(), 403);
         $created = $this->query($user, $filters)->selectRaw('created_by, COUNT(*) as total')->groupBy('created_by')->pluck('total', 'created_by');
         $assigned = $this->query($user, $filters)->selectRaw("operator_id, COUNT(*) as managed, SUM(CASE WHEN status = 'draft' AND deleted_at IS NULL THEN 1 ELSE 0 END) as draft, SUM(CASE WHEN status = 'in_progress' AND deleted_at IS NULL THEN 1 ELSE 0 END) as in_progress, SUM(CASE WHEN status = 'completed' AND deleted_at IS NULL THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN status = 'archived' OR deleted_at IS NOT NULL THEN 1 ELSE 0 END) as archived, SUM(CASE WHEN type = 'cremation' THEN 1 ELSE 0 END) as cremation, SUM(CASE WHEN type = 'standard_transport' THEN 1 ELSE 0 END) as standard_transport")->groupBy('operator_id')->get()->keyBy('operator_id');
 
-        return User::orderBy('name')->get(['id', 'name'])->map(function ($operator) use ($created, $assigned) {
+        return User::whereIn('role', ['admin', 'operator'])->orderBy('name')->get(['id', 'name'])->map(function ($operator) use ($created, $assigned) {
             $row = $assigned->get($operator->id);
 
             return ['name' => $operator->name, 'created' => (int) ($created[$operator->id] ?? 0), 'managed' => (int) ($row?->managed ?? 0), 'draft' => (int) ($row?->draft ?? 0), 'in_progress' => (int) ($row?->in_progress ?? 0), 'completed' => (int) ($row?->completed ?? 0), 'archived' => (int) ($row?->archived ?? 0), 'cremation' => (int) ($row?->cremation ?? 0), 'standard_transport' => (int) ($row?->standard_transport ?? 0)];

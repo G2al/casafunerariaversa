@@ -2,6 +2,7 @@
 
 namespace App\Filament\Support;
 
+use App\Enums\CaseStatus;
 use App\Enums\CaseType;
 use App\Enums\IdentityDocumentType;
 use Filament\Forms\Components\DatePicker;
@@ -12,8 +13,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
 
 class FuneralPacketForm
 {
@@ -25,8 +26,8 @@ class FuneralPacketForm
                 Select::make('transport_scope')->label('Ambito del trasporto')->options(['within_city' => 'Nell’ambito comunale', 'other_city' => 'In altro Comune']),
                 TextInput::make('transport_destination_city')->label('Comune di destinazione')->maxLength(255)->helperText('Il Comune in cui si trova la destinazione, distinto dal nome del crematorio.'),
             ])->columns(['default' => 1, 'md' => 2]),
-            Section::make('Identificazione del defunto — pagina 2')->visible(fn (Get $get) => (bool) $get('transport_enabled'))->schema([
-                Select::make('cremation_details.identification_method')->label('Modalità di identificazione')->options(['document' => 'Documento del defunto', 'witness' => 'Conoscenza diretta tramite testimone'])->live()->helperText('Compila i dati del documento oppure del testimone, secondo il caso.'),
+            Section::make('Identificazione del defunto — pagina 2')->collapsible()->collapsed()->visible(fn (Get $get) => (bool) $get('transport_enabled'))->schema([
+                Select::make('cremation_details.identification_method')->default('document')->label('Modalità di identificazione')->options(['document' => 'Documento del defunto', 'witness' => 'Conoscenza diretta tramite testimone'])->live()->helperText('Compila i dati del documento oppure del testimone, secondo il caso.'),
                 Placeholder::make('identity_document_hint')->label('Documento del defunto')->content('Gli estremi e i caricamenti fronte/retro si compilano nella sezione Documento del defunto della scheda Defunto.')->visible(fn (Get $get) => $get('cremation_details.identification_method') === 'document'),
                 Section::make('Testimone')->visible(fn (Get $get) => $get('cremation_details.identification_method') === 'witness')->schema([
                     self::text('witness_name', 'Nome e cognome del testimone'),
@@ -39,17 +40,17 @@ class FuneralPacketForm
                     'wood' => 'Sola cassa di legno foderata internamente',
                     'biodegradable' => 'Cassa di legno con contenitore biodegradabile',
                     'double' => 'Duplice cassa di legno e zinco',
-                ])->live(),
+                ])->required(fn (Get $get) => $get('status') !== 'draft' && $get('status') !== CaseStatus::Draft)->live(),
                 self::text('wooden_lining', 'Fodera interna della cassa di legno')->visible(fn (Get $get) => in_array($get('cremation_details.coffin_type'), ['wood', 'biodegradable'], true)),
                 self::text('sanitary_precautions', 'Eventuali particolari precauzioni igienico-sanitarie')->columnSpanFull(),
-                self::date('transport_authorization_date', 'Data autorizzazione del singolo trasporto')->live()->afterStateUpdated(fn ($state, Set $set) => $set('cremation_details.declaration_date', $state)),
+                self::date('transport_authorization_date', 'Data autorizzazione del singolo trasporto'),
                 self::text('transport_authorization_issuer', 'Comune che autorizza il singolo trasporto')->formatStateUsing(fn (Get $get) => $get('competent_city'))->readOnly()->helperText('Compilato dal Comune competente.'),
                 self::text('report_place', 'Luogo di redazione del verbale')->formatStateUsing(fn (Get $get) => $get('competent_city'))->readOnly()->helperText('Compilato dal Comune competente.'),
-                DateTimePicker::make('cremation_details.report_at')->label('Data e ora di redazione del verbale')->seconds(false)->displayFormat('d/m/Y H:i'),
+                DateTimePicker::make('cremation_details.report_at')->live()->label('Data e ora di redazione del verbale')->seconds(false)->displayFormat('d/m/Y H:i'),
             ])->description('Il personale e il mezzo sono quelli selezionati nella sezione Trasporto della scheda Defunto. L’operatore incaricato è anche il soggetto che prende in consegna il feretro.')->columns(['default' => 1, 'md' => 2]),
-            Section::make('Dichiarazione dell’impresa — pagina 3')->visible(fn (Get $get) => (bool) $get('transport_enabled'))->schema([
+            Section::make('Dichiarazione dell’impresa — pagina 3')->collapsible()->collapsed()->visible(fn (Get $get) => (bool) $get('transport_enabled'))->schema([
                 self::text('declaration_place', 'Luogo della dichiarazione')->formatStateUsing(fn (Get $get) => $get('competent_city'))->readOnly()->helperText('Compilato dal Comune competente.'),
-                self::date('declaration_date', 'Data della dichiarazione')->formatStateUsing(fn (Get $get) => $get('cremation_details.transport_authorization_date'))->disabled()->dehydrated(false),
+                Placeholder::make('declaration_date_display')->label('Data della dichiarazione')->content(fn (Get $get) => $get('cremation_details.report_at') ? Carbon::parse($get('cremation_details.report_at'))->format('d/m/Y') : 'Compilata dalla data del verbale'),
             ])->description('REA, licenze, INPS e INAIL si configurano una volta nelle Impostazioni agenzia. Nel documento viene ripreso l’elenco del personale selezionato, senza nominativi predefiniti.')->columns(2),
             Section::make('Destinazione delle ceneri')->visible(fn (Get $get) => in_array($get('type'), ['cremation', CaseType::Cremation], true))->schema([
                 self::text('ashes_custodian', 'Le ceneri saranno affidate a'),
@@ -84,7 +85,7 @@ class FuneralPacketForm
 
     public static function priorTransfer(): Section
     {
-        return Section::make('Traslazione precedente già effettuata')->description('Se applicabile: dati del trasferimento già avvenuto, distinti dalla data e dal luogo del trasferimento previsto per il rito. Altrimenti lascia vuoto.')->collapsible()->schema([
+        return Section::make('Traslazione precedente già effettuata')->description('Attiva il flag se la traslazione è già avvenuta. Nel trasporto normale compariranno anche i campi della camera ardente.')->collapsible()->schema([
             Toggle::make('prior_transfer_enabled')->label('Traslazione precedente effettuata')->default(false)->live(),
             Section::make('Dati della traslazione')->visible(fn (Get $get) => (bool) $get('prior_transfer_enabled'))->schema([
                 TextInput::make('prior_transfer_destination')->label('La salma è stata traslata presso')->maxLength(255),

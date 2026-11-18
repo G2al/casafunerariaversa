@@ -31,7 +31,7 @@ class ManifestLayout
             ['intro', $data['intro'], 0, .065, 15, false, 'DejaVu Serif'],
             ['name', mb_strtoupper($data['name']), .075, .17, 52, true, 'DejaVu Sans'],
             ['spouse', mb_strtoupper($data['spouse_line'] ?? ''), .245, .045, 13, true, 'DejaVu Sans'],
-            ['age', $data['age'] !== null ? 'DI ANNI '.$data['age'] : '', .29, .045, 17, true, 'DejaVu Sans'],
+            ['age', $data['age_text'] ?? ($data['age'] !== null ? 'DI ANNI '.$data['age'] : ''), .29, .045, 17, true, 'DejaVu Sans'],
             ['family', $data['family_text'], .345, .10, 17, false, 'DejaVu Serif'],
             ['viewing', $data['viewing'], .46, .14, 16, false, 'DejaVu Serif'],
             ['transfer', $data['transfer'], .61, .09, 15, false, 'DejaVu Serif'],

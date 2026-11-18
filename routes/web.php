@@ -18,6 +18,7 @@ Route::middleware(['auth', ActiveUser::class])->prefix('private')->name('private
     Route::post('manifests/{manifest}/editor', [ManifestRecordController::class, 'save'])->name('manifests.save');
     Route::delete('manifests/{manifest}/editor', [ManifestRecordController::class, 'reset'])->name('manifests.reset');
     Route::get('manifests/{manifest}/preview', [ManifestRecordController::class, 'preview'])->name('manifests.preview');
+    Route::get('manifests/{manifest}/thumbnail', [ManifestRecordController::class, 'thumbnail'])->name('manifests.thumbnail');
     Route::get('manifests/{manifest}/photo', [ManifestRecordController::class, 'photo'])->name('manifests.photo');
     Route::post('manifests/{manifest}/upload', [ManifestRecordController::class, 'upload'])->name('manifests.upload');
     Route::get('manifests/{manifest}/attachments/{attachment}', [ManifestRecordController::class, 'attachment'])->name('manifests.attachment');

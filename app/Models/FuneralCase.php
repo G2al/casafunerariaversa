@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
@@ -82,11 +83,13 @@ class FuneralCase extends Model
             foreach (['transport_authorization_issuer', 'report_place', 'declaration_place'] as $field) {
                 $details[$field] = $case->competent_city;
             }
-            $details['declaration_date'] = $details['transport_authorization_date'] ?? null;
+            $details['declaration_date'] = ! empty($details['report_at']) ? Carbon::parse($details['report_at'])->format('Y-m-d') : null;
             if (! empty($details['identity_document_unlimited'])) {
                 $details['identity_document_expires_at'] = null;
             }
+            $details['identification_method'] ??= 'document';
             $case->cremation_details = $details;
+            $case->transfer_at = $case->transport_at;
             if ($case->transport_ends_at && (! $case->transport_at || $case->transport_ends_at->lte($case->transport_at))) {
                 throw ValidationException::withMessages(['transport_ends_at' => 'La fine impegno deve essere successiva alla data e ora trasporto.']);
             }
@@ -151,7 +154,7 @@ class FuneralCase extends Model
 
     public function scopeVisibleTo(Builder $query, ?User $user): Builder
     {
-        if (! $user || ! $user->is_active || ! $user->role) {
+        if (! $user || ! $user->is_active || ! $user->role || $user->isServiceOrderOperator()) {
             return $query->whereRaw('1 = 0');
         }
 
@@ -217,6 +220,11 @@ class FuneralCase extends Model
     public function manifestRecord(): BelongsTo
     {
         return $this->belongsTo(ManifestRecord::class);
+    }
+
+    public function serviceOrder()
+    {
+        return $this->hasOne(ServiceOrder::class);
     }
 
     public function vehicleCommitment()

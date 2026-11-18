@@ -1,4 +1,8 @@
 {
+  "_pusher-BkHw9ksU.js": {
+    "file": "assets/pusher-BkHw9ksU.js",
+    "name": "pusher"
+  },
   "resources/css/app.css": {
     "file": "assets/app-CgU90ZqJ.css",
     "src": "resources/css/app.css",
@@ -26,6 +30,15 @@
       "occupancy-live.css"
     ]
   },
+  "resources/css/service-orders.css": {
+    "file": "assets/service-orders-wPDRE47q.css",
+    "src": "resources/css/service-orders.css",
+    "isEntry": true,
+    "name": "service-orders",
+    "names": [
+      "service-orders.css"
+    ]
+  },
   "resources/js/app.js": {
     "file": "assets/app-DMsN-rLE.js",
     "name": "app",
@@ -33,15 +46,27 @@
     "isEntry": true
   },
   "resources/js/manifest-editor.js": {
-    "file": "assets/manifest-editor-BhGxNCNZ.js",
+    "file": "assets/manifest-editor-GHRw2AgN.js",
     "name": "manifest-editor",
     "src": "resources/js/manifest-editor.js",
     "isEntry": true
   },
   "resources/js/occupancy-live.js": {
-    "file": "assets/occupancy-live-CWOirjtz.js",
+    "file": "assets/occupancy-live-w7ld8rSu.js",
     "name": "occupancy-live",
     "src": "resources/js/occupancy-live.js",
-    "isEntry": true
+    "isEntry": true,
+    "imports": [
+      "_pusher-BkHw9ksU.js"
+    ]
+  },
+  "resources/js/service-orders-live.js": {
+    "file": "assets/service-orders-live-CoC1EEXw.js",
+    "name": "service-orders-live",
+    "src": "resources/js/service-orders-live.js",
+    "isEntry": true,
+    "imports": [
+      "_pusher-BkHw9ksU.js"
+    ]
   }
 }

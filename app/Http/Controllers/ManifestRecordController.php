@@ -26,11 +26,11 @@ class ManifestRecordController extends Controller
         Gate::authorize('update', $manifest);
         $input = $request->validate(['revision' => 'present|nullable|uuid', 'source' => 'required|string|size:64',
             'freshAssets' => 'sometimes|array|max:100', 'freshAssets.*' => ['string', 'regex:/^(background|photo|logo|symbol|symbol_[0-9]+|frame_[0-9]+|upload_[0-9]+)$/'],
-            'scene' => 'required|array', 'image' => 'required|string|max:8388608', 'generate' => 'sometimes|boolean']);
+            'fields' => 'sometimes|nullable|array', 'scene' => 'required|array', 'image' => 'required|string|max:8388608', 'generate' => 'sometimes|boolean']);
         $revision = $editor->save($manifest, $input);
         $export = ! empty($input['generate']) ? $this->generate($manifest->fresh()) : null;
 
-        return response()->json(['revision' => $revision, 'documentUrl' => $export ? route('private.manifests.export', $export) : null])->header('Cache-Control', 'private, no-store');
+        return response()->json(['revision' => $revision, 'source' => $manifest->fresh()->manifest_layout['source_stamp'], 'documentUrl' => $export ? route('private.manifests.export', $export) : null])->header('Cache-Control', 'private, no-store');
     }
 
     public function reset(Request $request, ManifestRecord $manifest, ManifestEditor $editor)
@@ -82,6 +82,31 @@ class ManifestRecordController extends Controller
         abort_unless(Storage::disk('local')->exists($export->file_path), 404);
 
         return Storage::disk('local')->response($export->file_path, $export->manifestRecord->code.'-v'.$export->version.'.pdf', ['Cache-Control' => 'private, no-store']);
+    }
+
+    public function thumbnail(ManifestRecord $manifest, ManifestEditor $editor)
+    {
+        Gate::authorize('view', $manifest);
+        $path = $manifest->manifest_layout['image_path'] ?? null;
+        if ($path && str_starts_with($path, 'manifest-editor/') && ! str_contains($path, '..') && Storage::disk('local')->exists($path)) {
+            $image = @imagecreatefromstring(Storage::disk('local')->get($path));
+            abort_unless($image, 404);
+            $thumb = imagescale($image, 600);
+            ob_start();
+            imagejpeg($thumb, null, 82);
+            $bytes = ob_get_clean();
+            imagedestroy($thumb);
+            imagedestroy($image);
+
+            return response($bytes, 200, ['Content-Type' => 'image/jpeg', 'Cache-Control' => 'private, no-cache', 'X-Content-Type-Options' => 'nosniff']);
+        }
+        try {
+            $data = $editor->bootstrap($manifest);
+        } catch (ValidationException $e) {
+            return response('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 842 595"><text x="421" y="300" text-anchor="middle" font-size="24">Apri editor per preparare il manifesto</text></svg>', 200, ['Content-Type' => 'image/svg+xml', 'Cache-Control' => 'private, no-store']);
+        }
+
+        return response()->view('manifests.thumbnail', $data)->header('Content-Type', 'image/svg+xml')->header('Cache-Control', 'private, no-store')->header('Content-Security-Policy', "default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox");
     }
 
     public function photo(ManifestRecord $manifest)

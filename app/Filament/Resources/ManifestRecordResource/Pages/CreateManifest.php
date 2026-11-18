@@ -3,14 +3,25 @@
 namespace App\Filament\Resources\ManifestRecordResource\Pages;
 
 use App\Filament\Resources\ManifestRecordResource;
-use Filament\Resources\Pages\CreateRecord;
+use App\Models\ManifestRecord;
+use App\Services\ManifestRecords;
+use Filament\Resources\Pages\Page;
+use Illuminate\Support\Facades\Gate;
 
-class CreateManifest extends CreateRecord
+class CreateManifest extends Page
 {
     protected static string $resource = ManifestRecordResource::class;
 
-    protected function getRedirectUrl(): string
+    protected string $view = 'filament.pages.create-graphic-manifest';
+
+    public function mount(): void
     {
-        return static::getResource()::getUrl('edit', ['record' => $this->record]);
+        Gate::authorize('create', ManifestRecord::class);
+    }
+
+    public function begin(): void
+    {
+        $record = app(ManifestRecords::class)->createDraft();
+        $this->redirect(ManifestRecordResource::getUrl('editor', ['record' => $record]));
     }
 }

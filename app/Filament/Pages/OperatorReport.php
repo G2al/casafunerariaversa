@@ -3,7 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Services\CaseReports;
-use App\Services\CsvExport;
+use App\Services\ReportPdf;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -53,25 +53,23 @@ class OperatorReport extends Page
         return app(CaseReports::class)->monthly(auth()->user(), $this->data ?? [], false);
     }
 
+    public function details(): array
+    {
+        return app(CaseReports::class)->details(auth()->user(), $this->data ?? []);
+    }
+
     public function export()
     {
         abort_unless(static::canAccess(), 403);
         $this->form->getState();
-        $rows = $this->rows();
 
-        return response()->streamDownload(function () use ($rows) {
-            $stream = fopen('php://output', 'w');
-            fwrite($stream, "\xEF\xBB\xBF");
-            fputcsv($stream, ['Operatore', 'Create', 'Assegnate', 'Bozze', 'In lavorazione', 'Completate', 'Archiviate / cestino', 'Cremazioni', 'Trasporti'], ';', '"', '');
-            foreach ($rows as $row) {
-                fputcsv($stream, array_map(app(CsvExport::class)->cell(...), array_values($row)), ';', '"', '');
-            }
-            fclose($stream);
-        }, 'report-operatori.csv', ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'private, no-store']);
+        return app(ReportPdf::class)->download('report-operatori.pdf', 'Report per operatore', [
+            'operators' => $this->rows(), 'cases' => $this->details(), 'filters' => $this->data,
+        ]);
     }
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('export')->label('Esporta CSV')->action('export')];
+        return [Action::make('export')->label('Esporta PDF')->action('export')];
     }
 }

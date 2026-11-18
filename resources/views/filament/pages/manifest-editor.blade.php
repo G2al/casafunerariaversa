@@ -9,7 +9,7 @@
     </style>
     <div class="me" data-manifest-editor data-url="{{ $this->getRecord() instanceof \App\Models\ManifestRecord ? route('private.manifests.show',$this->getRecord()) : route('private.manifest-editor.show', [$this->getRecord(), 'kind' => $this->editorKind]) }}" wire:ignore>
         <div class="me-top">
-            <div><strong>{{ $this->getRecord()->code }} · {{ $this->getRecord()->full_name }}</strong><p>Angoli: ingrandisci testi e immagini. Lati del testo: cambia la larghezza. Sopra/sotto: allunga o schiaccia le lettere. Doppio clic: modifica il testo.</p></div>
+            <div><strong>{{ $this->getRecord()->code }} · <span data-manifest-name>{{ $this->getRecord()->full_name }}</span></strong><p>Angoli: ingrandisci testi e immagini. Lati del testo: cambia la larghezza. Sopra/sotto: allunga o schiaccia le lettere. Doppio clic: modifica il testo. Maiusc + clic: seleziona più elementi.</p></div>
             <a class="me-button" href="{{ $this->getRecord() instanceof \App\Models\ManifestRecord ? \App\Filament\Resources\ManifestRecordResource::getUrl('edit',['record'=>$this->getRecord()]) : \App\Filament\Resources\FuneralCaseResource::getUrl('edit', ['record' => $this->getRecord()]) }}">Torna ai dati</a>
         </div>
         <div class="me-notice" data-stale hidden>I dati del manifesto sono cambiati dall’ultimo salvataggio. La composizione salvata resta invariata. Usa “Aggiorna dai dati” per ricaricare testi e immagini.</div>
@@ -28,8 +28,8 @@
         <div class="me-toolbar">
             <label>Cartella simboli<select data-symbol-folder></select></label>
             <label>Immagine<select data-library></select></label><button type="button" data-command="add-library">Inserisci</button>
-            <label>Cornice<select data-frame></select></label><button type="button" data-command="change-frame">Cambia cornice</button>
-            <label>Immagine aggiuntiva<input data-upload type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" data-command="upload">Carica e inserisci</button>
+            <label>Cornice<select data-frame></select></label>
+            <label>Immagine aggiuntiva<input data-upload type="file" accept="image/jpeg,image/png,image/webp"></label><button type="button" data-command="upload">Carica e inserisci</button><button type="button" data-command="upload-photo">Carica come foto del defunto</button>
         </div>
         <div class="me-symbol-gallery" data-symbol-gallery aria-label="Immagini della cartella"></div>
         <div class="me-workspace">
@@ -38,6 +38,18 @@
                 <div class="me-scroll"><div class="me-canvas"><canvas data-canvas aria-label="Composizione del manifesto"></canvas></div></div>
             </section>
             <aside class="me-properties" aria-label="Proprietà elemento">
+                <details data-linked-fields hidden open style="margin-bottom:18px">
+                    <summary style="font-weight:700;cursor:pointer">Dati collegati al manifesto</summary>
+                    <p class="me-hint">Nome e cognome sono due blocchi distinti: modificandoli sul foglio aggiorni i campi. I testi dell’annuncio sono collegati ai blocchi corrispondenti. Salva la composizione per registrare tutto.</p>
+                    @foreach(['first_name'=>'Nome','last_name'=>'Cognome','birth_date'=>'Data di nascita','death_date'=>'Data di morte','spouse_name'=>'Coniuge','marital_status'=>'Stato civile','viewing_venue'=>'Sede camera ardente','viewing_address'=>'Indirizzo camera ardente','viewing_starts_at'=>'Inizio esposizione','viewing_ends_at'=>'Fine esposizione','church'=>'Chiesa','ceremony_city'=>'Località rito','ceremony_at'=>'Data e ora esequie','transfer_place'=>'Luogo trasferimento','transport_at'=>'Data e ora trasporto'] as $field=>$label)
+                        <label style="display:block;margin-top:10px">{{ $label }}<input data-field="{{ $field }}" type="{{ in_array($field,['birth_date','death_date']) ? 'date' : (str_ends_with($field,'_at') ? 'datetime-local' : 'text') }}" @if(!str_ends_with($field,'_at') && !str_ends_with($field,'_date')) maxlength="255" @endif></label>
+                    @endforeach
+                    <label>Sesso<select data-field="sex"><option value="male">Maschio</option><option value="female">Femmina</option></select></label>
+                    @foreach(['intro'=>'Introduzione','family'=>'Annuncio familiari','viewing'=>'Testo camera ardente','transfer'=>'Testo trasferimento','ceremony'=>'Testo esequie','closing'=>'Ringraziamento','date'=>'Luogo e data','spouse'=>'Testo coniuge','age'=>'Testo età'] as $key=>$label)
+                        <label style="display:block;margin-top:10px">{{ $label }}<textarea data-block="{{ $key }}" rows="2" maxlength="4000"></textarea></label>
+                    @endforeach
+                </details>
+
                 <label>Elemento<select data-element><option value="">Seleziona sul foglio</option></select></label>
                 <p class="me-hint" data-selection-hint>Seleziona un testo, la foto o il logo per modificarlo. Puoi cambiare la cornice dalla barra superiore.</p>
                 <fieldset data-properties disabled>

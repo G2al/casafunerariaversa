@@ -12,7 +12,14 @@ use Illuminate\Validation\ValidationException;
 
 class ManifestRecords
 {
-    public const FIELDS = ['type', 'first_name', 'last_name', 'sex', 'birth_date', 'death_date', 'spouse_name', 'marital_status', 'photo_path', 'manifest_template_id', 'manifest_options', 'family_members', 'viewing_venue', 'viewing_address', 'viewing_starts_at', 'viewing_ends_at', 'church', 'ceremony_city', 'ceremony_at', 'transfer_place', 'transfer_at'];
+    public const FIELDS = ['type', 'first_name', 'last_name', 'sex', 'birth_date', 'death_date', 'spouse_name', 'marital_status', 'photo_path', 'manifest_template_id', 'manifest_options', 'family_members', 'viewing_venue', 'viewing_address', 'viewing_starts_at', 'viewing_ends_at', 'church', 'ceremony_city', 'ceremony_at', 'transfer_place', 'transfer_at', 'transport_at'];
+
+    public function createDraft(): ManifestRecord
+    {
+        Gate::authorize('create', ManifestRecord::class);
+
+        return ManifestRecord::create(['operator_id' => auth()->id(), 'data' => ['sex' => 'male', 'manifest_options' => ['show_closing' => true]]]);
+    }
 
     public function forCase(FuneralCase $case): ManifestRecord
     {

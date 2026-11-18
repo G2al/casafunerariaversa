@@ -17,6 +17,11 @@ class Dashboard extends \Filament\Pages\Dashboard
 
     protected static ?int $navigationSort = 1;
 
+    public static function canAccess(): bool
+    {
+        return auth()->user()?->is_active && ! auth()->user()?->isServiceOrderOperator();
+    }
+
     public function filtersForm(Schema $schema): Schema
     {
         return $schema->components([

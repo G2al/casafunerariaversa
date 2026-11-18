@@ -21,7 +21,7 @@ class ManifestRecord extends Model
 
     public function scopeVisibleTo($query, $user)
     {
-        return ! $user?->is_active || ! $user?->role ? $query->whereRaw('1=0') : ($user->isAdmin() ? $query : $query->where('operator_id', $user->id));
+        return ! $user?->is_active || ! $user?->role || $user?->isServiceOrderOperator() ? $query->whereRaw('1=0') : ($user->isAdmin() ? $query : $query->where('operator_id', $user->id));
     }
 
     public function sourceCase()
@@ -56,7 +56,9 @@ class ManifestRecord extends Model
 
     public function asCase(): FuneralCase
     {
-        $case = new FuneralCase(array_merge(['type' => CaseType::StandardTransport, 'status' => 'draft'], $this->data ?? []));
+        $data = $this->data ?? [];
+        $data['transport_at'] ??= $data['transfer_at'] ?? null;
+        $case = new FuneralCase(array_merge(['type' => CaseType::StandardTransport, 'status' => 'draft'], $data));
         $case->code = $this->source_case_id ? ($this->sourceCase?->code ?? $this->code) : $this->code;
 
         return $case;

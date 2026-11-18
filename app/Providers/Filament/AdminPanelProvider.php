@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Dashboard;
+use App\Filament\Resources\ServiceOrderResource;
 use App\Http\Middleware\ActiveUser;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -30,6 +31,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->homeUrl(fn () => auth()->user()?->isServiceOrderOperator() ? ServiceOrderResource::getUrl('index') : Dashboard::getUrl())
             ->brandName('Casa Funeraria · Gestionale')
             ->databaseTransactions()
             ->unsavedChangesAlerts()

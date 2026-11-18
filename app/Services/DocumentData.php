@@ -36,7 +36,7 @@ class DocumentData
         return $missing;
     }
 
-    public function assemble(FuneralCase|ManifestRecord $case, string $kind): array
+    public function assemble(FuneralCase|ManifestRecord $case, string $kind, bool $allowIncomplete = false): array
     {
         if ($case instanceof ManifestRecord) {
             $case = $case->asCase();
@@ -45,7 +45,7 @@ class DocumentData
             return ['symbol' => app(PrivateImage::class)->dataUri(Symbol::where('is_active', true)->orderBy('sort_order')->orderBy('id')->value('image_path')), 'logo' => app(PrivateImage::class)->dataUri(CompanySettings::current()['logo_path'] ?? null) ?? 'data:image/png;base64,'.base64_encode(file_get_contents(resource_path('images/logo-casafuneraria.png'))), 'background' => null, 'photo' => null, 'code' => $case->code, 'first_name' => $case->first_name, 'last_name' => $case->last_name, 'birth_date' => $case->birth_date?->format('d/m/Y'), 'death_date' => $case->death_date?->format('d/m/Y')];
         }
         $missing = $kind === 'document' ? [] : $this->missing($case, $kind);
-        if ($kind !== 'document' && $missing) {
+        if (! $allowIncomplete && $kind !== 'document' && $missing) {
             throw ValidationException::withMessages(['document' => 'Dati mancanti: '.implode(', ', $missing).'. Salva i dati dopo averli compilati.']);
         }
         $company = CompanySettings::current();
@@ -80,7 +80,7 @@ class DocumentData
         $ceremony = ($options['show_ceremony'] ?? true) && ($case->church || $case->ceremony_at)
             ? 'Il rito funebre si terrà '.($case->ceremony_at ? 'il '.$case->ceremony_at->translatedFormat('d F Y').' alle '.$case->ceremony_at->format('H:i').' ' : '').trim('presso '.$case->church.' '.$case->ceremony_city).'.' : '';
         $transfer = ($options['show_transfer'] ?? true) && $case->transfer_place
-            ? 'Il trasferimento avverrà presso '.$case->transfer_place.($case->transfer_at ? ' il '.$case->transfer_at->translatedFormat('d F Y').' alle '.$case->transfer_at->format('H:i') : '').'.' : '';
+            ? 'Il trasferimento avverrà presso '.$case->transfer_place.(($case->transport_at ?? $case->transfer_at) ? ' il '.($case->transport_at ?? $case->transfer_at)->translatedFormat('d F Y').' alle '.($case->transport_at ?? $case->transfer_at)->format('H:i') : '').'.' : '';
         $data += [
             'spouse_line' => filled($case->spouse_name) ? trim(($case->marital_status ?? '').' '.$case->spouse_name) : '',
             'intro' => $intro, 'family_text' => $family, 'viewing' => $viewing, 'ceremony' => $ceremony, 'transfer' => $transfer,
@@ -90,6 +90,15 @@ class DocumentData
             'background' => $images->dataUri($case->manifestTemplate?->image_path),
             'template_title' => $case->manifestTemplate?->title ?? 'Senza cornice',
         ];
+
+        $data['first_name'] = $case->first_name ?? '';
+        $data['last_name'] = $case->last_name ?? '';
+        foreach ($options['editor_texts'] ?? [] as $key => $value) {
+            $target = ['intro' => 'intro', 'family' => 'family_text', 'viewing' => 'viewing', 'transfer' => 'transfer', 'ceremony' => 'ceremony', 'closing' => 'closing', 'date' => 'place_date', 'spouse' => 'spouse_line', 'age' => 'age_text'][$key] ?? null;
+            if ($target && is_string($value)) {
+                $data[$target] = $value;
+            }
+        }
 
         return $data;
     }

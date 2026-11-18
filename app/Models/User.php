@@ -61,6 +61,11 @@ class User extends Authenticatable implements FilamentUser
         return $this->is_active && $this->role === UserRole::Admin;
     }
 
+    public function isServiceOrderOperator(): bool
+    {
+        return $this->is_active && $this->role === UserRole::ServiceOrderOperator;
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->is_active && $this->role !== null;
@@ -74,6 +79,8 @@ class User extends Authenticatable implements FilamentUser
     public function hasHistoricalRecords(): bool
     {
         return FuneralCase::withTrashed()->where(fn ($query) => $query->where('created_by', $this->id)->orWhere('operator_id', $this->id))->exists()
+            || ServiceOrder::where('created_by', $this->id)->orWhere('confirmed_by', $this->id)->exists()
+            || DB::table('service_order_events')->where('user_id', $this->id)->exists()
             || FuneralDocument::where('created_by', $this->id)->exists()
             || ManifestRecord::where('operator_id', $this->id)->orWhere('created_by', $this->id)->exists();
     }
