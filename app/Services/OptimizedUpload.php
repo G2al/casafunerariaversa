@@ -41,7 +41,7 @@ class OptimizedUpload
                 }
             }
             $limit = match ($directory) {
-                'photos' => 2000, 'company', 'logos' => 1600, default => 3508
+                'photos', 'service-order-photos' => 2000, 'company', 'logos' => 1600, default => 3508
             };
             $scale = min(1, $limit / max(imagesx($image), imagesy($image)));
             $target = imagecreatetruecolor(max(1, (int) round(imagesx($image) * $scale)), max(1, (int) round(imagesy($image) * $scale)));

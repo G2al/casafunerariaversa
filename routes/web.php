@@ -4,6 +4,7 @@ use App\Http\Controllers\FilePresentationController;
 use App\Http\Controllers\ManifestEditorController;
 use App\Http\Controllers\ManifestRecordController;
 use App\Http\Controllers\PrivateFilesController;
+use App\Http\Controllers\ServiceOrderPhotoController;
 use App\Http\Middleware\ActiveUser;
 use Illuminate\Support\Facades\Route;
 
@@ -12,6 +13,7 @@ Route::get('/', function () {
 });
 
 Route::middleware(['auth', ActiveUser::class])->prefix('private')->name('private.')->group(function () {
+    Route::get('service-orders/{order}/photo', ServiceOrderPhotoController::class)->name('service-orders.photo');
     Route::get('file/{type}/{record}/{part?}', [FilePresentationController::class, 'show'])->whereNumber('record')->name('file-present');
     Route::get('manifests/exports/{export}', [ManifestRecordController::class, 'export'])->name('manifests.export');
     Route::get('manifests/{manifest}/editor', [ManifestRecordController::class, 'show'])->name('manifests.show');

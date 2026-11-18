@@ -1,6 +1,11 @@
 <x-filament-panels::page>
-    @include('filament.forms.service-order-live', ['mode' => 'list'])
-    {{ $this->form }}
-    <p>Conteggi per data di conferma: una cassa per ordine confermato. Ordini in bozza, in preparazione o riaperti sono esclusi.</p>
-    <x-filament::section heading="Casse e materiali">@include('reports.order-totals', $this->report())</x-filament::section>
+    @php($report = $this->report())
+    <div class="ops-ui ops-report">
+        <section class="ops-panel">
+            <header class="ops-panel-head"><div class="ops-title"><span class="ops-icon"><x-filament::icon icon="heroicon-o-calendar-days" /></span><div><h2>Periodo delle conferme</h2><p>I conteggi seguono la data di conferma dell’ordine.</p></div></div>@include('filament.forms.service-order-live', ['mode' => 'list'])</header>
+            <div class="ops-panel-body">{{ $this->form }}</div>
+            <div class="ops-panel-foot"><x-filament::icon icon="heroicon-o-information-circle" /><span>Sono inclusi solo gli ordini confermati. Bozze, ordini in preparazione e riaperti sono esclusi.</span></div>
+        </section>
+        @include('filament.reports.order-totals', $report)
+    </div>
 </x-filament-panels::page>

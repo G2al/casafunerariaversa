@@ -108,3 +108,17 @@ Archivio manifesti a card (5 colonne desktop), anteprime private leggere, creazi
 ## Accesso operatore ordine di servizio — correzione redirect
 
 Il solo homeUrl del pannello non sostituiva la destinazione conservata dal login standard (redirect intended). Aggiunta risposta di login dedicata: per service_order_operator cancella la destinazione precedente e apre esclusivamente Ordini di servizio; per gli altri ruoli mantiene il comportamento Filament. ActiveUser reindirizza anche l’accesso GET alla dashboard /admin verso gli ordini. Permessi delle altre risorse invariati. Nessuna migrazione/build/ENV; verifiche statiche PHP, compatibilità del contratto LoginResponse e Pint, senza prove funzionali locali.
+
+
+## Restyling report e ordine di servizio
+
+Riorganizzate le tre schermate: report casse/materiali con filtri in pannello, quattro indicatori, schede per confezionamento, modelli e materiali affiancati e dettaglio ordini; report operatori con indicatori, tabella numerica, andamento mensile a schede/barre e dettagli pratiche con stati e materiali espandibili. Ordine di servizio con intestazione/stato, avanzamento a tre fasi, dati cassa affiancati, materiali su due colonne con selezioni evidenziate, quantità disattivate per gli elementi esclusi, avvisi e barra azioni con icone. Stile comune responsive chiaro/scuro e badge live compatto. Viste web dedicate per preservare gli impaginati PDF. Nessuna modifica a migrazioni, permessi, conteggi o flussi di conferma. Build di produzione rigenerata; soli controlli statici/Blade/Pint/build, nessuna prova funzionale o browser locale secondo la preferenza dell’utente. Includere public/build in Git; dopo deploy optimize:clear/optimize e Ctrl+F5.
+
+
+## Foto e azzeramento ordine di servizio
+
+Foto facoltativa privata nell’ordine (JPEG/PNG/WebP fino a 10 MB), anteprima temporanea, sostituzione/rimozione al salvataggio, apertura/stampa e download autenticati. Riutilizzato OptimizedUpload con limite 2000 px/WebP. Unica eccezione al blocco private/* per il ruolo ordini: la rotta foto, protetta da policy sull’ordine; gli operatori ordinari possono leggere solo la foto dell’ordine della propria pratica. Per i confermati occorre riaprire prima di modificare.
+
+Amministratore: Elimina e azzera nella scheda e azione Elimina nell’archivio/dettaglio. Elimina record, foto e revisioni collegate, conserva solo una traccia amministrativa minima dell’azione; la pratica rimane. Gli ordini confermati eliminati escono dai totali e viene inviata invalidazione Reverb. Ritorno alla lista dal dettaglio autonomo, modulo iniziale nella pratica; lista operatore aggiornata se l’ordine aperto viene eliminato. Controllo concorrenza su ID e revisione anche dopo eliminazione/ricreazione, per impedire sovrascritture da vecchie schede. Rimozione file solo dopo commit; pulizia della nuova foto in caso di rollback.
+
+Migrazione aggiuntiva 2026_11_18_000200 predisposta, NON eseguita localmente. Verifiche statiche PHP/classi/viste, Pint e build completate, nessun test funzionale/upload/browser locale. Rilascio: includere public/build, migrate --force, optimize:clear/optimize; nessuna nuova dipendenza, configurazione ENV o servizio.

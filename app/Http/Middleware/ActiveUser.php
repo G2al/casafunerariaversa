@@ -14,7 +14,7 @@ class ActiveUser
             abort(403, 'Account non attivo o senza ruolo.');
         }
 
-        abort_if($request->user()?->isServiceOrderOperator() && $request->is('private/*'), 403);
+        abort_if($request->user()?->isServiceOrderOperator() && $request->is('private/*') && ! $request->routeIs('private.service-orders.photo'), 403);
 
         if ($request->user()?->isServiceOrderOperator()
             && $request->isMethod('GET')

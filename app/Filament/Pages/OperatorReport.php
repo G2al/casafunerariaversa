@@ -70,6 +70,6 @@ class OperatorReport extends Page
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('export')->label('Esporta PDF')->action('export')];
+        return [Action::make('export')->label('Esporta PDF')->icon('heroicon-o-arrow-down-tray')->action('export')];
     }
 }

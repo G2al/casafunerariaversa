@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Support\ServiceOrderActions;
 use App\Models\ServiceOrder;
 use Filament\Actions\Action;
 use Filament\Resources\Resource;
@@ -41,7 +42,7 @@ class ServiceOrderResource extends Resource
             TextColumn::make('confirmed_at')->label('Confermato')->dateTime('d/m/Y H:i')->sortable(),
         ])->filters([SelectFilter::make('status')->label('Stato')->options(['draft' => 'Bozza', 'submitted' => 'Da preparare', 'confirmed' => 'Confermato'])])
             ->defaultSort('submitted_at', 'desc')->recordUrl(fn ($record) => self::getUrl('view', ['record' => $record]))
-            ->recordActions([Action::make('open')->label('Apri ordine')->url(fn ($record) => self::getUrl('view', ['record' => $record]))]);
+            ->recordActions([Action::make('open')->label('Apri ordine')->url(fn ($record) => self::getUrl('view', ['record' => $record])), ServiceOrderActions::delete()]);
     }
 
     public static function getPages(): array

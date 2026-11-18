@@ -2,16 +2,32 @@
 
 namespace App\Livewire;
 
+use App\Filament\Resources\ServiceOrderResource;
 use App\Models\FuneralCase;
 use App\Models\ServiceOrder;
 use App\Services\ServiceOrders;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class ServiceOrderPanel extends Component
 {
+    use WithFileUploads;
+
+    public $photo;
+
+    #[Locked]
+    public bool $removePhoto = false;
+
+    #[Locked]
+    public ?int $orderId = null;
+
+    #[Locked]
+    public bool $returnToList = false;
+
     #[Locked]
     public int $caseId;
 
@@ -25,9 +41,10 @@ class ServiceOrderPanel extends Component
 
     public bool $remoteChanged = false;
 
-    public function mount(int $caseId): void
+    public function mount(int $caseId, bool $returnToList = false): void
     {
         $this->caseId = $caseId;
+        $this->returnToList = $returnToList;
         $this->reload();
     }
 
@@ -48,6 +65,9 @@ class ServiceOrderPanel extends Component
     {
         $order = $this->authorizedOrder();
         $this->revision = $order?->revision;
+        $this->orderId = $order?->id;
+        $this->photo = null;
+        $this->removePhoto = false;
         $this->state = $order?->status ?? 'draft';
         $defaults = ServiceOrder::defaults();
         $items = $order?->items ?? [];
@@ -61,8 +81,13 @@ class ServiceOrderPanel extends Component
 
     public function remoteUpdate(): void
     {
+        if (auth()->user()->isServiceOrderOperator() && ! ServiceOrder::where('funeral_case_id', $this->caseId)->where('status', '!=', 'draft')->exists()) {
+            $this->redirect(ServiceOrderResource::getUrl('index'));
+
+            return;
+        }
         $order = $this->authorizedOrder();
-        $this->remoteChanged = $order?->revision !== $this->revision;
+        $this->remoteChanged = $order?->id !== $this->orderId || $order?->revision !== $this->revision;
     }
 
     public function addItem(): void
@@ -75,11 +100,48 @@ class ServiceOrderPanel extends Component
     public function saveOrder(string $action = 'save'): void
     {
         $this->authorizedOrder();
-        app(ServiceOrders::class)->save($this->caseId, $this->data, $this->revision, $action);
+        $this->validate(['photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240']);
+        app(ServiceOrders::class)->save($this->caseId, $this->data, $this->revision, $action, $this->photo, $this->removePhoto, $this->orderId);
         $this->reload();
         Notification::make()->success()->title(match ($action) {
             'submit' => 'Ordine inviato', 'confirm' => 'Ordine confermato: cassa conteggiata', 'reopen' => 'Ordine riaperto', default => 'Ordine salvato'
         })->send();
+    }
+
+    public function updatedPhoto(): void
+    {
+        $order = $this->authorizedOrder();
+        abort_if($order?->status === 'confirmed', 403);
+        $this->validate(['photo' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240']);
+        $this->removePhoto = false;
+    }
+
+    public function clearPhoto(): void
+    {
+        $order = $this->authorizedOrder();
+        abort_if($order?->status === 'confirmed', 403);
+        $this->photo = null;
+        $this->removePhoto = true;
+        $this->resetErrorBag('photo');
+    }
+
+    public function deleteOrder(): void
+    {
+        abort_unless(auth()->user()?->isAdmin(), 403);
+        $order = $this->authorizedOrder();
+        if ($order && ($order->id !== $this->orderId || $order->revision !== $this->revision)) {
+            throw ValidationException::withMessages(['order' => 'L’ordine è cambiato. Ricaricalo prima di eliminarlo.']);
+        }
+        if ($order) {
+            app(ServiceOrders::class)->delete($order->id, $this->revision);
+        }
+        Notification::make()->success()->title('Ordine eliminato e azzerato')->send();
+        if ($this->returnToList) {
+            $this->redirect(ServiceOrderResource::getUrl('index'));
+
+            return;
+        }
+        $this->reload();
     }
 
     public function render()
