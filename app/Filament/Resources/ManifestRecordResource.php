@@ -87,9 +87,11 @@ class ManifestRecordResource extends Resource
         ])])->contentGrid(['default' => 1, 'sm' => 2, 'lg' => 3, 'xl' => 5])->paginated([10, 20, 50])->defaultPaginationPageOption(10)
             ->recordUrl(fn (ManifestRecord $record) => self::getUrl('editor', ['record' => $record]))
             ->filters([TernaryFilter::make('source_case_id')->label('Collegamento alla pratica')->nullable()])->defaultSort('updated_at', 'desc')
-            ->recordActions([EditAction::make()->label('Dati'), Action::make('editor')->label('Editor')->url(fn (ManifestRecord $r) => self::getUrl('editor', ['record' => $r])),
-                Action::make('preview')->label('Anteprima / stampa')->url(fn (ManifestRecord $r) => route('private.manifests.preview', $r))->openUrlInNewTab(),
-                Action::make('duplicate')->label('Duplica manifesto')->unsavedChangesAlert(false)->requiresConfirmation()->modalDescription('Viene creato un manifesto autonomo con gli stessi dati e grafica. Nessuna pratica viene duplicata.')
+            ->recordActions([
+                EditAction::make()->label('Modifica dati')->icon('heroicon-o-pencil-square')->iconButton()->size('sm')->tooltip('Modifica dati'),
+                Action::make('editor')->label('Apri editor')->icon('heroicon-o-paint-brush')->iconButton()->size('sm')->tooltip('Apri editor')->url(fn (ManifestRecord $r) => self::getUrl('editor', ['record' => $r])),
+                Action::make('preview')->label('Anteprima e stampa')->icon('heroicon-o-printer')->iconButton()->size('sm')->tooltip('Anteprima e stampa')->url(fn (ManifestRecord $r) => route('private.manifests.preview', $r))->openUrlInNewTab(),
+                Action::make('duplicate')->label('Duplica manifesto')->icon('heroicon-o-document-duplicate')->iconButton()->size('sm')->tooltip('Duplica manifesto')->unsavedChangesAlert(false)->requiresConfirmation()->modalDescription('Viene creato un manifesto autonomo con gli stessi dati e grafica. Nessuna pratica viene duplicata.')
                     ->action(fn (ManifestRecord $record) => redirect(self::getUrl('edit', ['record' => app(ManifestRecords::class)->duplicate($record->fresh())]))),
             ]);
     }
